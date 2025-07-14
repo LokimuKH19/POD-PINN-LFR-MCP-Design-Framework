@@ -79,8 +79,7 @@ This model is experimental and was made in a lab — not a control room.
 CFD is great, but slow. This approach tries to bridge that with a light, learnable model that still respects physics (see the explanation of the results in the paper). Think of it as:  
 **“I want to *guess smart*, not *simulate slow*.”**
 
-During my undergrad, my thesis was all about building a digital twin for the LFR MCP. Back then, I went with a **pure PINN** approach. It worked — kind of. The relative error in the flow field was around **15%**, which isn’t bad.  
-**BUT** the dataset was *huge*, training was *painfully slow*, and I nearly didn’t graduate because of it 💀
+During my undergrad, my thesis was all about building a digital twin for the LFR MCP. Back then, I went with a **pure PINN** approach. It worked — kind of. The relative error in the flow field was around **15%**, which isn’t bad.  **BUT** the dataset was *huge*, training was *painfully slow*💀
 
 So I’ve been on the hunt for a better way ever since. This POD-PINN thing?  
 It’s a work-in-progress. It **needs way less data** (yay!) but the accuracy? Still not ideal (meh).  
