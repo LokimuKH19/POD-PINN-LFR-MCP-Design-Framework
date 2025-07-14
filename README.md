@@ -53,6 +53,10 @@ $$
 ### 3. Discrete modes + autograd = 🤯
 POD gives **discrete** spatial modes. But PINNs need **continuous gradients** (thanks, backprop).
 
+### 4. Graphical Abstract
+![Graphical Abstract](graphical abstract.png)
+📌 仅供学术展示 / For academic presentation only / 학술용 발표 자료
+
 **Solution?**  
 We used interpolation (splines/NNs) to make the modes differentiable.  
 Hot tip: train **4 separate networks for each mode** — keeps the interpolation truer to the original CFD data.
