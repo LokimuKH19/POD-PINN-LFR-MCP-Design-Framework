@@ -10,10 +10,10 @@ The model was trained and tested using good ol’ CFD results — **Ansys CFX** 
 
 ## So... how well did it do?
 
-Okay, we’ll be honest — not perfect. We’re dealing with **very high Reynolds numbers**, and we only used **4 POD modes**. That captured about 90% of the energy, but turns out, 90% isn't enough when the flow gets wild.
+Okay, we’ll be honest — not perfect. We’re dealing with **very high Reynolds numbers**, and we only used **4 POD modes**. That captured about 95% of the energy, but turns out, 95% isn't enough when the flow gets wild. (Even in some more linears occasions e.g. Only Thermal Conduction Evolved)
 
 Why the error?  
-- High nonlinearity, few modes = still a trade-off between speed and accuracy (error < 40%)
+- High nonlinearity, few modes = still a trade-off between speed and accuracy (error < 40% in the paper)
 - Reynolds numbers are huge → behavior becomes chaotic  
 - The method’s better at catching **flow trends** (correlation > 0.7 in the paper), but struggles with absolute precision
 
@@ -21,7 +21,9 @@ In short: **great for trend detection, not so great for exact numbers**. But hey
 
 ## Wait, the code doesn't match the paper?
 
-Yep. The paper was based on earlier results — and, well, **conference page limits are brutal**. So we had to cut a lot of the juicy details. What you see here is a more refined version. Consider this the “director’s cut.”
+Yep. In fact, this repository is an improved research version — with brand-new data, better-performing programs, and, of course, **more sense of humour**. The original paper was based on earlier results — and, well, **conference page limits are brutal**, plus **some of the data is confidential**. So, a lot of juicy details had to be left on the cutting room floor. What you see here is the “director’s cut” — a more refined, fleshed-out version.
+
+Funny story: I didn’t even realize neural network results could be kept consistent and reproducible using random seed control until the first peer review of another one of our projects. Before that, I was a complete noob in CS & AI and had no clue what a random seed even meant. That little revelation is actually how the DRQI repo was born.
 
 ---
 
@@ -50,6 +52,7 @@ POD gives **discrete** spatial modes. But PINNs need **continuous gradients** (t
 **Solution?**  
 We used interpolation (splines/NNs) to make the modes differentiable.  
 Hot tip: train **4 separate networks for each mode** — keeps the interpolation truer to the original CFD data.
+tip: 
 
 ---
 
@@ -60,13 +63,13 @@ This model is experimental and was made in a lab — not a control room.
 > ⚠️ **Disclaimer**:  
 > This model is for academic and research purposes only. It's not production-grade, and definitely not reactor-grade.  
 > **Any accidents, errors, or nuclear meltdowns caused by using this model are 100% on you.**  
-> You've been warned. Use wisely. Or at least don't use it to control an actual pump.
+> You've been warned. Use wisely. Or at least don't use it to control an actual LFR MCP.
 
 ---
 
 ## 🧠 Bonus: Why this matters
 
-CFD is great, but slow. This approach tries to bridge that with a light, learnable model that still respects physics. Think of it as:  
+CFD is great, but slow. This approach tries to bridge that with a light, learnable model that still respects physics (see the explanation of the results in the paper). Think of it as:  
 **“I want to *guess smart*, not *simulate slow*.”**
 
 ---
