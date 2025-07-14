@@ -148,3 +148,5 @@ We found that a batch size of **128** strikes a good balance:
 Batch size influences gradient variance, which helps the model escape shallow local minima.
 
 ---
+
+When Activate `Interpolator.py`, neccesary model parameters and normalizers will be saved automatically in the `Interpolator` filefolder.
