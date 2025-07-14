@@ -71,7 +71,7 @@ This directory is basically your **low-dimensional version of the full CFD resul
 👉 You might notice that the **Mean Squared Error (MSE)** shown in the console is quite large for velocity (especially `U`), while relatively small for other quantities. That’s because we **did not normalize** any field before POD — which is actually fine here, since **POD is linear** and we don’t strictly need normalization unless doing some further nonlinear work.  
 Still, if you check the **correlation coefficients**, they perform nicely (~1), which means the **flow patterns and trends are well captured** even if absolute magnitudes aren’t perfect.
 
-👀 Now, what comes next *diverges* a bit from what the paper did — in the paper, we used a **nearest-neighbor interpolation** method to estimate modal coefficients for unseen conditions. It worked, but honestly, it's a bit... primitive.
+👀 Now, what comes next *diverges* a bit from what the paper did — in the paper, we used a **nearest-neighbor interpolation** method to estimate modal coefficients for arbitary position. And calculated the derivatives of each points in advance before PINN training. It worked, but honestly, it's a bit... primitive.
 
 Here, we're taking it a step further by building a smoother, more flexible, and **learnable interpolator**. For:
 - 💨 **Performance**: Once trained, neural interpolators can generalize to new cases much faster than retracing nearest neighbors from a large dataset.
