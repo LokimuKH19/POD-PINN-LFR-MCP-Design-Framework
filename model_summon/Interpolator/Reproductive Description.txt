@@ -1,0 +1,11 @@
+Interplotator of P:
+def train_model(data_name='P', epochs=2000, batch_size=128, dropout=0, test_ratio=0.2, lr=1e-2, hidden_dims=[20, 20, 20, 20], seed=25):
+	...
+	scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(model.optimizer, mode='min', factor=0.8, patience=30, verbose=True)
+
+Interplotator of Uz, Ur, Ut(change data_name is ok)
+def train_model(data_name='Uz', epochs=2000, batch_size=128, dropout=0, test_ratio=0.2, lr=1e-2, hidden_dims=[20, 20, 20, 20], seed=25):
+	...
+	scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(model.optimizer, mode='min', factor=0.6, patience=30, verbose=True)
+
+
