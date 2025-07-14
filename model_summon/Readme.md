@@ -149,4 +149,4 @@ Batch size influences gradient variance, which helps the model escape shallow lo
 
 ---
 
-When Activate `Interpolator.py`, neccesary model parameters and normalizers will be saved automatically in the `Interpolator` filefolder.
+When Activate `Interpolator.py`, neccesary model parameters and normalizers will be saved automatically in the `Interpolator` filefolder. See the calculation settings in the `Reproductive Description.txt` in that folder.
