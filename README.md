@@ -38,7 +38,7 @@ We combined two fancy techniques:
 **Equations?**
 - POD:  
 $$
-\mathbf{U}(\mathbf{x}, t) \approx \sum_{i=1}^{N} a_i(t) \phi_i(\mathbf{x})
+\mathbf{U}(\mathbf{x}, t) \approx \sum_1^N a_i(t) \phi_i(\mathbf{x})
 $$
 - PINN:  
   Neural networks trained with physical constraints (governing equations baked into the loss function).
