@@ -107,7 +107,7 @@ Personally, we’re leaning toward the **“one network per field”** route. Th
 
 Saves our sanity, and our folders. That's what we've done in the `Interpolation.py`.
 
-This section documents the key insights and techniques that helped us consistently reduce modal interpolation error to the **1e-4 MAE level**,however, the original main modal values ranged between **1e-7 to 1e-2**. This translates to a larged relative error ~50%, which is hard to accept. Still, we found these modifications has potential to enhance the interpolation model's performance.
+This section documents the key insights and techniques that helped us consistently reduce modal interpolation error to the **1e-4 MAE level**,however, the original main modal values ranged between **1e-7 to 1e-2**. This translates to a larged relative error, which is hard to accept (Though the Pearson Correlation Factor is mostly larger than 0.99). Still, we found these modifications has potential to enhance the interpolation model's performance.
 
 ---
 
