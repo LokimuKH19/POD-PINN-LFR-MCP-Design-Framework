@@ -79,3 +79,30 @@ Here, we're taking it a step further by building a smoother, more flexible, and 
 In short — smarter, faster, better. Let's get building.
 
 ## 🧩 Interpolator Construction
+
+`Interplotation.py` is responsible for this step.
+
+### 🧠 What's the plan?
+
+Now, let’s talk about how we want to build the interpolator.
+
+Take a look at the `coefficients_*.csv` files — each one contains modal coefficients for a specific physical quantity (P, Ur, Ut, Uz). Each column is a mode (like `Mode 1`, `Mode 2`, etc.), and each row corresponds to a specific simulation case, with a coordinate that has three components: **r**, **θ**, and **z**. So this sets us up with a nice little problem:
+
+> Learn a mapping from `(r, θ, z)` ⟶ `(φ₁, φ₂, φ₃, φ₄)` for each variable.
+
+That’s a **3 → 4 regression task**, and now the question becomes:  
+Do we want to:
+
+- 🧩 Train **one big neural network per field** to output all 4 modal coefficients at once?  
+  ✅ Pros: Fewer models to manage, easier training pipeline, potentially shared feature learning.  
+  ❌ Cons: Slightly harder to tune, may need more complex architecture.
+
+**OR**
+
+- 🔬 Train **four separate networks per field**, one for each mode?  
+  ✅ Pros: Potentially easier to debug and tune per mode.  
+  ❌ Cons: More models (16 in total!), more files, more chaos in general.
+
+Personally, we’re leaning toward the **“one network per field”** route. That gives us **4 networks total**, one for `P`, `Ur`, `Ut`, and `Uz` — each mapping `(r, θ, z)` to a 4-dimensional output.
+
+Saves our sanity, and our folders. That's what we've done in the Interplotation.py.
