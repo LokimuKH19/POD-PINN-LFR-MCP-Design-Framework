@@ -53,15 +53,13 @@ $$
 ### 3. Discrete modes + autograd = 🤯
 POD gives **discrete** spatial modes. But PINNs need **continuous gradients** (thanks, backprop).
 
+**Solution?**  
+We used interpolation (3-nearest neighbor in the paper, not so accurate as we expected when computing $\frac{\partial u}{\partial r}$/NNs) to make the modes differentiable.  
+
 ### 4. Graphical Abstract
 ![Graphical Abstract](graphical_abstract.png)
 
 📌For academic presentation only
-
-**Solution?**  
-We used interpolation (3-nearest neighbor in the paper, not so accurate as we expected when computing $\frac{\partial u}{\partial r}$ due to the r-zone is relatively narrow/NNs, we used now, aslo not accurate enough...) to make the modes differentiable.  
-Hot tip: train **4 separate networks for each mode** — keeps the interpolation truer to the original CFD data.
-tip: 
 
 ---
 
