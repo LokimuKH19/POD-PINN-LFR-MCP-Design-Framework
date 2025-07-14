@@ -80,7 +80,7 @@ In short — smarter, faster, better. Let's get building.
 
 ## 🧩 Interpolator Construction
 
-`Interplotation.py` is responsible for this step. To functionize the discreted $phi_i(x)$ in the previous step.
+`Interpolation.py` is responsible for this step. To functionize the discreted $phi_i(x)$ in the previous step.
 
 ### 🧠 What's the plan?
 
