@@ -75,7 +75,7 @@ Still, if you check the **correlation coefficients**, they perform nicely (~1), 
 
 Here, we're taking it a step further by building a smoother, more flexible, and **learnable interpolator**. For:
 - 💨 **Performance**: Once trained, neural interpolators can generalize to new cases much faster than retracing nearest neighbors from a large dataset.
-- 🎯 **Precision**: A well-trained model can capture nonlinearity and subtle parametric trends that nearest-neighbor interpolation completely ignores.
+- 🎯 **Precision**: However, the model might encounter underfitting issues than the 3-nearest neighbor one.
 In short — smarter, faster, better. Let's get building.
 
 ## 🧩 Interpolator Construction
