@@ -13,9 +13,9 @@ The model was trained and tested using good ol’ CFD results — **Ansys CFX** 
 Okay, we’ll be honest — not perfect. We’re dealing with **very high Reynolds numbers**, and we only used **4 POD modes**. That captured about 90% of the energy, but turns out, 90% isn't enough when the flow gets wild.
 
 Why the error?  
-- High nonlinearity, few modes = still a trade-off between speed and accuracy  
+- High nonlinearity, few modes = still a trade-off between speed and accuracy (error < 40%)
 - Reynolds numbers are huge → behavior becomes chaotic  
-- The method’s better at catching **flow trends** (correlation ≈ 1), but struggles with absolute precision
+- The method’s better at catching **flow trends** (correlation > 0.7 in the paper), but struggles with absolute precision
 
 In short: **great for trend detection, not so great for exact numbers**. But hey, sometimes that's all you need.
 
@@ -31,7 +31,7 @@ We combined two fancy techniques:
 
 ### 1. POD + PINN = ❤️
 - **POD** (Proper Orthogonal Decomposition) breaks down the CFD flow fields into modes.
-- Then **PINNs** (Physics-Informed Neural Networks) try to regress the modal coefficients under different boundary conditions.
+- Then **PINNs** (Physics-Informed Neural Networks) try to regress the modal coefficients under different working conditions.
 
 **Equations?**
 - POD:  
