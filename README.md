@@ -55,7 +55,7 @@ POD gives **discrete** spatial modes. But PINNs need **continuous gradients** (t
 
 ### 4. Graphical Abstract
 ![Graphical Abstract](graphical_abstract.png)
-📌 仅供学术展示 / For academic presentation only / 학술용 발표 자료
+####📌For academic presentation only
 
 **Solution?**  
 We used interpolation (splines/NNs) to make the modes differentiable.  
@@ -80,6 +80,12 @@ This model is experimental and was made in a lab — not a control room.
 CFD is great, but slow. This approach tries to bridge that with a light, learnable model that still respects physics (see the explanation of the results in the paper). Think of it as:  
 **“I want to *guess smart*, not *simulate slow*.”**
 
+During my undergrad, my thesis was all about building a digital twin for the LFR MCP. Back then, I went with a **pure PINN** approach. It worked — kind of. The relative error in the flow field was around **15%**, which isn’t bad.  
+**BUT** the dataset was *huge*, training was *painfully slow*, and I nearly didn’t graduate because of it 💀
+
+So I’ve been on the hunt for a better way ever since. This POD-PINN thing?  
+It’s a work-in-progress. It **needs way less data** (yay!) but the accuracy? Still not ideal (meh).  
+Call it an *unsuccessful attempt at being efficient*, but hey — at least it's a step.
 ---
 
-Stay curious. Stay skeptical. And always double-check what the Raynolds number(lol).
+Stay curious. Stay skeptical. And always double-check what the Raynolds number(lol). Enjoy the code in `model_summon` filefolder.
