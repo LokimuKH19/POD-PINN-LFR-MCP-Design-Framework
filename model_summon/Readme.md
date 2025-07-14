@@ -106,3 +106,45 @@ Do we want to:
 Personally, we’re leaning toward the **“one network per field”** route. That gives us **4 networks total**, one for `P`, `Ur`, `Ut`, and `Uz` — each mapping `(r, θ, z)` to a 4-dimensional output.
 
 Saves our sanity, and our folders. That's what we've done in the `Interpolation.py`.
+
+This section documents the key insights and techniques that helped us consistently reduce modal interpolation error to the **1e-4 MAE level**,however, the original main modal values ranged between **1e-7 to 1e-2**. This translates to a larged relative error ~50%, which is hard to accept. Still, we found these modifications has potential to enhance the interpolation model's performance.
+
+---
+
+### ✅ Key Observations
+
+#### 1. Depth over Width: Why `[20, 20, 20, 20]` Works Better Than `[64, 64]`
+
+While `[64, 64]` has more total parameters (4096), a deeper network like `[20, 20, 20, 20]` (1200 parameters) tends to generalize better and escape local minima more easily.
+
+- **Deeper networks** offer more compositional power.
+- **Fewer parameters** make it less prone to overfitting.
+- The "depth" often helps capture hierarchical structure in modal behavior.
+
+---
+
+#### 2. Use of `ReduceLROnPlateau` Scheduler
+
+We apply a learning rate scheduler to **automatically reduce the learning rate** when the test loss plateaus. This improves convergence and fine-tuning performance.
+
+```python
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    model.optimizer, mode='min', factor=0.6, patience=30, verbose=True
+)
+```
+
+- This avoids being stuck in a sub-optimal local minimum.
+- Learning rate drops are triggered **only when necessary**, not every N epochs.
+
+---
+
+#### 3. Batch Size Matters
+
+We found that a batch size of **128** strikes a good balance:
+
+- Smaller batches introduce too much noise.
+- Larger batches lead to smoother but less exploratory updates.
+
+Batch size influences gradient variance, which helps the model escape shallow local minima.
+
+---
