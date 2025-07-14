@@ -54,7 +54,7 @@ $$
 POD gives **discrete** spatial modes. But PINNs need **continuous gradients** (thanks, backprop).
 
 **Solution?**  
-We used interpolation (3-nearest neighbor in the paper, not so accurate as we expected when computing $\frac{\partial u}{\partial r}$/NNs) to make the modes differentiable.  
+We used interpolation (nearest neighbor in the paper, not so accurate as we expected when computing $\frac{\partial u}{\partial r}$) to make the modes differentiable. However that means this program has to run on a huge table which records the derivatives from each order of all spatial coordinates in the equation loss function.
 
 ### 4. Graphical Abstract
 ![Graphical Abstract](graphical_abstract.png)
