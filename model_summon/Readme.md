@@ -105,4 +105,4 @@ Do we want to:
 
 Personally, we’re leaning toward the **“one network per field”** route. That gives us **4 networks total**, one for `P`, `Ur`, `Ut`, and `Uz` — each mapping `(r, θ, z)` to a 4-dimensional output.
 
-Saves our sanity, and our folders. That's what we've done in the Interplotation.py.
+Saves our sanity, and our folders. That's what we've done in the `Interpolation.py`.
