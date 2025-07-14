@@ -86,6 +86,5 @@ During my undergrad, my thesis was all about building a digital twin for the LFR
 So I’ve been on the hunt for a better way ever since. This POD-PINN thing?  
 It’s a work-in-progress. It **needs way less data** (yay!) but the accuracy? Still not ideal (meh).  
 Call it an *unsuccessful attempt at being efficient*, but hey — at least it's a step.
----
 
 Stay curious. Stay skeptical. And always double-check what the Raynolds number(lol). Enjoy the code in `model_summon` filefolder.
