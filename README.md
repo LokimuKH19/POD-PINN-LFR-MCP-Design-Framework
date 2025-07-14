@@ -54,7 +54,7 @@ $$
 POD gives **discrete** spatial modes. But PINNs need **continuous gradients** (thanks, backprop).
 
 ### 4. Graphical Abstract
-![Graphical Abstract](graphical abstract.png)
+![Graphical Abstract](graphical_abstract.png)
 📌 仅供学术展示 / For academic presentation only / 학술용 발표 자료
 
 **Solution?**  
