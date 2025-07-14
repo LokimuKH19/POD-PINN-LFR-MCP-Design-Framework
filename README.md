@@ -70,7 +70,7 @@ tip:
 This model is experimental and was made in a lab — not a control room.
 
 > ⚠️ **Disclaimer**:  
-> This model is for academic and research purposes only. It's not production-grade, and definitely not reactor-grade.  
+> This model is still in very early stage, for academic and research purposes only. It has not reached the standard of a production-grade, and definitely not reactor-grade.  
 > **Any accidents, errors, or nuclear meltdowns caused by using this model are 100% on you.**  
 > You've been warned. Use wisely. Or at least don't use it to control an actual LFR MCP.
 
