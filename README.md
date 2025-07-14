@@ -37,11 +37,9 @@ We combined two fancy techniques:
 
 **Equations?**
 - POD:  
-$
-
-U(x,t) 
-
-$
+$$
+u(x) \in H^2(\Omega) \cap V
+$$
 - PINN:  
   Neural networks trained with physical constraints (governing equations baked into the loss function).
 
