@@ -10,7 +10,7 @@ The model was trained and tested using good ol’ CFD results — **Ansys CFX** 
 
 ## So... how well did it do?
 
-Okay, we’ll be honest — not perfect. We’re dealing with **very high Reynolds numbers**, and we only used **4 POD modes**. That captured about 95% of the energy, but turns out, 95% isn't enough when the flow gets wild. (Even in some more linears occasions e.g. Only Thermal Conduction Evolved)
+Okay, we’ll be honest — not perfect. We’re dealing with **very high Reynolds numbers**, and we only used **4 POD modes**. That captured about 95% of the energy, but turns out, 95% isn't enough when the flow gets wild. (Even in some more linears occasions e.g. Only Thermal Conduction Evolved, other researches might used energy propotion more than 99%)
 
 Why the error?  
 - High nonlinearity, few modes = still a trade-off between speed and accuracy (error < 40% in the paper)
