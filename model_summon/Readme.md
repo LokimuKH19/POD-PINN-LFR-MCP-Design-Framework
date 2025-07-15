@@ -150,3 +150,28 @@ Batch size influences gradient variance, which helps the model escape shallow lo
 ---
 
 When Activate `Interpolator.py`, neccesary model parameters and normalizers will be saved automatically in the `Interpolator` filefolder. See the calculation settings in the `Reproductive Description.txt` in that folder.
+
+
+## 🧩 What does the Original Interpolator Look Like?
+
+### 🗺 Background
+
+In our original research paper, we adopted a 3-nearest-neighbor interpolation combined with a Gaussian kernel weighting scheme to ensure the interpolation result is smooth and differentiable. This approach was chosen to provide a balance between interpolation accuracy and smoothness, crucial for downstream applications involving gradients and higher-order derivatives, such as Physics-Informed Neural Networks (PINNs) used later.
+However, the initial implementation lacked a data pre-loading (pre-reading) mechanism, which led to slower loss function computations during training due to repeated disk I/O or re-computations. What's more, we are unsatisfy with the performance of the interpolators based on neural networks (see in the `Interpolator` filefolder). These are the motivation which drive me to propose a better performed one, with accuracy and significantly improved speed.
+
+### 🔑 Key Improvements in This Implementation
+#### 1) Interpolation Method and Accuracy
+- We use k-nearest neighbors (k=3 by default) to localize interpolation and avoid global smoothing artifacts.
+- A Gaussian kernel weight based on neighbor distances provides a smooth weighting that enables differentiability.
+- Exact sample points may cause issues with computing second derivatives because interpolated values exactly match sample values, often resulting in non-smooth or undefined second derivatives.
+- To mitigate this, a tiny random perturbation (epsilon shift) is added to inputs before interpolation when computing gradients. This helps avoid hitting the exact sample points where higher-order derivatives are unstable or undefined.
+#### 2) Points Used for PINN Training
+- PINNs require the evaluation of residuals (losses) at arbitrary spatial points.
+- Since our interpolation function is continuous and differentiable (except at exact sample points), we can generate any training points on-the-fly for the PINN.
+- However, to ensure well-defined second derivatives, we avoid evaluating exactly at sample points by adding a minuscule perturbation (on the order of 1e-8).
+- This subtlety is critical to maintain numerical stability and gradient availability in PINN loss computations.
+#### 3) Efficiency Considerations
+- The interpolator is instantiated once and treated as a global object during training.
+- This avoids repeated file reads and re-computation of interpolation weights.
+- The batch operations in PyTorch ensure GPU acceleration can be leveraged for fast interpolation and gradient computations.
+- Adding the perturbation noise is very cheap computationally but yields significant benefits in gradient stability.
