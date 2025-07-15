@@ -168,10 +168,14 @@ However, the initial implementation lacked a data pre-loading (pre-reading) mech
 #### 2) Points Used for PINN Training
 - PINNs require the evaluation of residuals (losses) at arbitrary spatial points.
 - Since our interpolation function is continuous and differentiable (except at exact sample points), we can generate any training points on-the-fly for the PINN.
-- However, to ensure well-defined second derivatives, we avoid evaluating exactly at sample points by adding a minuscule perturbation (on the order of 1e-8).
+- However, to ensure well-defined second derivatives, we avoid evaluating exactly at sample points by adding a minuscule perturbation (on the order of 1e-6~1e-8). If you don't do that, you will get a tensor full of 'nan's.
 - This subtlety is critical to maintain numerical stability and gradient availability in PINN loss computations.
 #### 3) Efficiency Considerations
 - The interpolator is instantiated once and treated as a global object during training.
 - This avoids repeated file reads and re-computation of interpolation weights.
 - The batch operations in PyTorch ensure GPU acceleration can be leveraged for fast interpolation and gradient computations.
 - Adding the perturbation noise is very cheap computationally but yields significant benefits in gradient stability.
+
+This design of this improved KNN Interpolator is in `InterpolatorORI.py`.
+
+
