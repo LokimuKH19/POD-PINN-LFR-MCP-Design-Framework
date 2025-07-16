@@ -14,8 +14,10 @@ In this folder, you’ll find the raw CFD data used for POD decomposition.
   - `P.csv` — Pressure  
   - `Ur.csv` — Radial velocity  
   - `Ut.csv` — Tangential velocity  
-  - `Uz.csv` — Axial velocity  
+  - `Uz.csv` — Axial velocity
 
+- `exp.csv`
+  Contains the operating conditions of the pump, each row represents a CFD result with different rotating speed $\omega$ (rpm) and outlet volumn flow rate $q_v$ (m3/s)
   Each **column** represents a specific operating condition (we have 25 total), and each **row** corresponds to a coordinate point from `coordinates.csv`.
 
 ### 🌀 Symmetry Assumption
