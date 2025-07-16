@@ -55,7 +55,7 @@ Where:
 
 ### 📁 What's in `ReduceResults/`
 
-After running `ReduceOrder.py`, for each physical variable (`P`, `Ur`, `Ut`, `Uz`) represented as `*`, the following files will be generated:
+After running `ReduceOrder.py`, for each physical variable (`P`, `Ur`, `Ut`, `Uz`) represented as `*`, the following files will be generated in the filefolder `Interpolator`:
 
 | File | Description |
 |------|-------------|
@@ -177,5 +177,11 @@ However, the initial implementation lacked a data pre-loading (pre-reading) mech
 - Adding the perturbation noise is very cheap computationally but yields significant benefits in gradient stability.
 
 This design of this improved KNN Interpolator is in `InterpolatorORI.py`.
+
+## 🎥 Now the modes become C2 functions. So PINN Construction is continued
+### 3 ways to construct PINN for regress the modal coefficients:
+- `ReconstructORI.py`: PINN with KNN interpolators
+- `Reconstruct.py`: PINN with NN interpolators
+- `ReconstructWEAK.py`: PINN with KNN interpolators, but with weak form of the equation loss functions.
 
 
