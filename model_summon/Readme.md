@@ -184,4 +184,10 @@ This design of this improved KNN Interpolator is in `InterpolatorORI.py`.
 - `Reconstruct.py`: PINN with NN interpolators
 - `ReconstructWEAK.py`: PINN with KNN interpolators, but with weak form of the equation loss functions.
 
+In all three cases, the PINN only regresses the **modal coefficients**, and the full flow field is reconstructed using pre-interpolated modal basis functions.
+
+### 📌 Governing Equations
+
+We define the residuals of the control equations in the blade reference frame for use in the loss function construction. These include the continuity equation and momentum equations (radial, tangential, axial), with centrifugal and Coriolis effects included.
+
 
