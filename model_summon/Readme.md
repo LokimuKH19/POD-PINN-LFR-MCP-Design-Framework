@@ -188,6 +188,6 @@ In all three cases, the PINN only regresses the **modal coefficients**, and the 
 
 ### 📌 Governing Equations
 
-We define the residuals of the control equations in the blade reference frame for use in the loss function construction. These include the continuity equation and momentum equations (radial, tangential, axial), with centrifugal and Coriolis effects included.
+We define the residuals of the control equations in the blade reference frame for use in the loss function construction. These include the continuity equation and momentum equations (radial, tangential, axial), with centrifugal and Coriolis effects included. Also see in the paper.
 
 
