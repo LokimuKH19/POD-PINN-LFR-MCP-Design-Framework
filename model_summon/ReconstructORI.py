@@ -191,12 +191,12 @@ class PINNSystem:
         omega, qv = condition[0, 0], condition[0, 1]  # normalized omega, qv
 
         # Unnormalize for real-world omega (from r/min to rad/s)
-        omega_real = (omega * self.omega_std + self.omega_mean) * 2 * torch.pi / 60  # rad/s
+        omega_real = -(omega * self.omega_std + self.omega_mean) * 2 * torch.pi / 60  # rad/s
 
         # Predict fields at coords under condition
         fields = self.__call__(coords, condition[0], enable_grad=True)  # [P, Ut, Ur, Uz]
         p = fields['P'].unsqueeze(1)
-        ut = fields['Ut'].unsqueeze(1)
+        ut = fields['Ut'].unsqueeze(1) - omega*r    # transfer into the relative velocity
         ur = fields['Ur'].unsqueeze(1)
         uz = fields['Uz'].unsqueeze(1)
 
@@ -476,7 +476,7 @@ if __name__ == "__main__":
     # Hyper Parameters
     hidden_dim = 30
     hidden_layers = 2
-    learning_rate = 1e-3
+    learning_rate = 1e-2
     coord_batch_size = 128
     use_physics_loss = True
     use_physics_batch = False    # slow but accurate
