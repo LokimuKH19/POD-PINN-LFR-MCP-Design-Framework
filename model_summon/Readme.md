@@ -196,7 +196,7 @@ We define the residuals of the control equations in the blade reference frame fo
 
 ⚠ The rotating direction of the impeller is clockwise (as the z direction selected along the coolant flow in our paper), therefore negative $\omega$ is used instead. In addition, the unit `rpm` needs to be transformed into `rad/s` before caculating the physical losses.
 
-⚠ The Laplacian Operator in cylindrical coordinates should be: $\nabla^2 f = \frac{1}{r}\frac{\partial}{\partial r}\left(r\frac{\partial f}{\partial r}\right)+\frac{1}{r^2}\frac{\partial^2 f}{\partial r^2}+\frac{\partial^2 f}{\partial z^2}$
+⚠ The Laplacian Operator in cylindrical coordinates should be: $\nabla^2 f = \frac{1}{r}\frac{\partial}{\partial r}\left(r\frac{\partial f}{\partial r}\right)+\frac{1}{r^2}\frac{\partial^2 f}{\partial r^2}+\frac{\partial^2 f}{\partial z^2}$ (Though the vicous terms can be ignored for the liquid metal, and even if you made mistakes here it won't influence the results significantly, I strongly advise you to check this when you do similar things. Just in case the fluid suddenly becomes water or oil.)
 
 - The Continuum Equation:
 ```math
