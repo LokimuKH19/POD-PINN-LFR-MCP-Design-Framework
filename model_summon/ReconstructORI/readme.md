@@ -200,6 +200,7 @@ This hybrid training scheme is expected to **reduce total training time** while 
 ```
 
 🚀 And, we got these convergence curves:
+![HybridModel](./Waiting....png)
 
 
 ---
