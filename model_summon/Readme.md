@@ -198,7 +198,7 @@ F_C(u_r,u_\theta,u_z)=\frac{1}{r}\frac{\partial(ru_r)}{\partial r} + \frac{1}{r}
 ```
 - The r-Momentum Equation
 ```math
-F_R(u_r,u_\theta,u_z,p)=u_r\frac{\partial u_r}{\partial r} + \frac{u_\theta}{r}\frac{\partial u_r}{\partial \theta}+u_z\frac{\partial u_r}{\partial z}-\frac{u_\theta^2}{r}+\frac{1}{\rho}\frac{\partial p}{\partial r}-\frac{\mu}{\rho}\big(\nabla^2 u_r-\frac{u_r}{r^2}-\frac{2}{r^2}\frac{\partial u_\theta}{\partial \theta}\big)-\omega^2 r+2\omega u_\theta=0
+F_R(u_r,u_\theta,u_z,p)=u_r\frac{\partial u_r}{\partial r} + \frac{u_\theta}{r}\frac{\partial u_r}{\partial \theta}+u_z\frac{\partial u_r}{\partial z}-\frac{u_\theta^2}{r}+\frac{1}{\rho}\frac{\partial p}{\partial r}-\frac{\mu}{\rho}\bbig(\nabla^2 u_r-\frac{u_r}{r^2}-\frac{2}{r^2}\frac{\partial u_\theta}{\partial \theta}\bbig)-\omega^2 r+2\omega u_\theta=0
 ```
 
 ### 🔍 Notes on Weak Form and Domain Constraints
