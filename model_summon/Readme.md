@@ -206,6 +206,11 @@ F_R(u_r,u_\theta,u_z,p)=u_r\frac{\partial u_r}{\partial r} + \frac{u_\theta}{r}\
 F_Θ(u_r,u_\theta,u_z,p)=u_r\frac{\partial u_\theta}{\partial r} + \frac{u_\theta}{r}\frac{\partial u_\theta}{\partial \theta}+u_z\frac{\partial u_\theta}{\partial z}+\frac{u_\theta u_r}{r}+\frac{1}{\rho r}\frac{\partial p}{\partial \theta}-\frac{\mu}{\rho}\left(\nabla^2 u_\theta-\frac{u_\theta}{r^2}+\frac{2}{r^2}\frac{\partial u_r}{\partial \theta}\right)-2\omega u_r=0
 ```
 
+- The z-Momentum Equation
+```math
+F_Z(u_r,u_\theta,u_z,p)=u_r\frac{\partial u_z}{\partial r} + \frac{u_\theta}{r}\frac{\partial u_z}{\partial \theta}+u_z\frac{\partial u_z}{\partial z}+\frac{1}{\rho}\frac{\partial p}{\partial z}-\frac{\mu}{\rho}\nabla^2 u_z+g=0
+```
+
 ### 🔍 Notes on Weak Form and Domain Constraints
 In this work, we primarily focus on a localized modeling strategy based on reduced-order representations. Since our surrogate models are trained in a low-dimensional parametric space, the corresponding reconstruction is only valid within a spatially bounded region. This inherently restricts the direct application of boundary conditions in the classic PDE sense. And in `Reconstruct.py` I also attempt to use the mean value as another constraint, however I finally gave up it due to the high complexity of calculating the integral of the whole region.
 
