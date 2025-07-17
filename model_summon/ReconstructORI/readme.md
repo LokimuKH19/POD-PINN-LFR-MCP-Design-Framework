@@ -156,10 +156,10 @@ This reflects the benefit of injecting physics consistency even if applied only 
 
 ### 📊 Final Epoch Loss Summary
 
-| Model Variant              | Train Loss ↓ | Test Loss ↓ |
-|---------------------------|--------------|-------------|
-| Without Physics Loss      | **almost 0**  |  **2.20** |
-| With Physics Loss         | **0.12**  |  **1.80** |
+| Model Variant              | Train Loss ↓ | Test Loss ↓ | Evaluation |
+|---------------------------|--------------|-------------|-------------|
+| Without Physics Loss      | **almost 0**  |  **2.20** | Overfitted, the Testing Loss Stopped Going Down at the ~500th Epoch |
+| With Physics Loss         | **0.12**  |  **1.80** | The Testing Loss Continued to Decrease even after the 4000th Epoch, But Underfitted |
 
 > Test loss continues to decrease in the physics-supervised version, confirming stronger generalization and physically meaningful prediction.
 
