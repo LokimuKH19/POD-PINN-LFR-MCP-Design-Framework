@@ -205,9 +205,23 @@ class PINNSystem:
                                  create_graph=True, retain_graph=True)[0]
 
         def laplacian(u):
+            """
+            Compute Laplacian of scalar field u in cylindrical coordinates.
+
+            u: Tensor of shape (N, 1), output of network
+            coords: Tensor of shape (N, 3), [r, theta, z]
+
+            Returns: Tensor of shape (N, 1), Laplacian of u
+            """
             grad_u = grad(u, coords)  # du/dr, du/dtheta, du/dz
-            d2u = grad(grad_u, coords)  # 2nd derivatives wrt r,theta,z
-            return d2u[:, 0:1] + d2u[:, 1:2] / (r ** 2) + d2u[:, 2:3]
+            du_dr = grad_u[:, 0:1]
+            # Compute second derivatives
+            grad_du = grad(grad_u, coords)  # shape: (N, 3), d²u/dx²...
+            d2u_drr = grad_du[:, 0:1]
+            d2u_dtheta2 = grad_du[:, 1:2]
+            d2u_dzz = grad_du[:, 2:3]
+            lap = (1 / r) * du_dr + d2u_drr + (1 / r ** 2) * d2u_dtheta2 + d2u_dzz
+            return lap
 
         # Derivatives
         dur_dr = grad(ur, coords)[:, 0:1]
@@ -230,7 +244,7 @@ class PINNSystem:
         lap_ut = laplacian(ut)
         lap_uz = laplacian(uz)
 
-        # ===== Physics Residuals =====
+        # ===== Physics Residuals ===== (In fact the viscous terms are too small that we can just ignore them...)
         # Continuity
         FC = (1/r) * grad(r * ur, coords)[:, 0:1] + (1/r) * dut_dtheta + duz_dz
 
@@ -476,12 +490,12 @@ if __name__ == "__main__":
     # Hyper Parameters
     hidden_dim = 30
     hidden_layers = 2
-    learning_rate = 1e-2
+    learning_rate = 1e-3
     coord_batch_size = 128
     use_physics_loss = True
     use_physics_batch = False    # slow but accurate
-    epochs = 3000
-    pretrain_epochs = 500
+    epochs = 5000
+    pretrain_epochs = 0
 
     # ===== Initialize Model=====
     pinn = PINNSystem(
