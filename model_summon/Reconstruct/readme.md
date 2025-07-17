@@ -1,6 +1,6 @@
-# Physics-Informed Neural Network (PINN) with ROM-based Interpolation
+# Result Discussion of POD-PINN with KNN Interpolator
 
-This repository implements a reduced-order modeling (ROM) based Physics-Informed Neural Network (PINN) framework designed for fluid dynamics problems. It leverages pre-computed modal bases for the reconstruction of physical fields, and introduces a carefully balanced combination of **data loss** and **physics loss**.
+This is a detailed discussion of the enhanced program `../ReconstructORI.py`(The method we adopted in the paper and with better performance, reproductivity and more readable and debugging friendlier code). It leverages pre-computed modal bases for the reconstruction of physical fields, and introduces a carefully balanced combination of **data loss** and **physics loss**.
 
 ---
 
@@ -70,7 +70,7 @@ physics_loss /= 1e7
 total_loss = data_loss + physics_loss
 ```
 
-> 📌 Note: Physics loss is used **only as a soft constraint**, guiding training without forcing convergence. This stabilizes learning without overwhelming the supervised signal.
+> 📌 Note: Physics loss is used **as a soft constraint**, guiding training without forcing convergence. This stabilizes learning without overwhelming the supervised signal.
 
 ---
 
@@ -119,10 +119,14 @@ with torch.enable_grad():
 
 ---
 
+## ✔ Result Discussion
+
+
 ## 📚 Future Plans
 
-- Replace `SmoothKNNInterpolator` with trainable MLP interpolators for end-to-end learning.
 - Add support for additional physical quantities and alternative boundary conditions.
 - Explore physics loss weighting via dynamic loss balancing (e.g., using uncertainty or GradNorm).
+- If you have a better device (Mine is NVIDIA Geforce RTX 2060), you can use `use_physics_batch=True` to get a better model
+
 
 ---
