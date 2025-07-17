@@ -11,7 +11,7 @@ This is a detailed discussion of the enhanced program `../ReconstructORI.py`(The
 - **Physics Loss Supervision**: Uses physics residuals (continuity + momentum) as *regularization*, not strict minimization.
 - **Gradient Flow Enabled Call**: Model supports gradient-enabled forward pass via `enable_grad=True` for computing PDE residuals.
 - **Coordinate Shift for Stability**: All coordinates are shifted by `1e-6` to avoid gradient instabilities in physics loss.
-- **Physics/Data Loss Balancing**: Physics loss is divided by `1e7` to match the scale of data loss and prevent it from dominating.
+- **Physics/Data Loss Balancing**: Physics loss is divided by `1e6` to match the scale of data loss and prevent it from dominating.
 - **Batch-based Physics Loss**: Efficient sampling strategy over spatial and parametric dimensions to accelerate training.
 - **Flexible Training Modes**: Supports both random point sampling and full coordinate-batch training (configurable).
 
