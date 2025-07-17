@@ -1,6 +1,6 @@
-# Result Discussion of POD-PINN with KNN Interpolator
+# Result Discussion of POD-PINN with NN Interpolator
 
-This is a detailed discussion of the enhanced program `../ReconstructORI.py`(The method we adopted in the paper and with better performance, reproductivity and more readable and debugging friendlier code). It leverages pre-computed modal bases for the reconstruction of physical fields, and introduces a carefully balanced combination of **data loss** and **physics loss**.
+This is a detailed discussion of the enhanced program `../Reconstruct.py`(The new proposed method). It leverages pre-computed modal bases for the reconstruction of physical fields, and introduces a carefully balanced combination of **data loss** and **physics loss**.
 
 ---
 
