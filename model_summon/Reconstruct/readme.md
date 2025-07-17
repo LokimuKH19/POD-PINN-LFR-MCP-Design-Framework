@@ -22,11 +22,11 @@ This is a detailed discussion of the enhanced program `../ReconstructORI.py`(The
 The following files are expected in the working directory:
 
 ```
-./EXP.csv                    # Experimental parameters: omega, qv, and split flags
-./coordinate.csv             # All spatial coordinates (r, theta, z)
-./ReducedResults/coefficients_{P,Ut,Ur,Uz}.csv  # Modal coefficients for each variable
-./ReducedResults/mean_{P,Ut,Ur,Uz}.csv          # Mean value for each variable
-./ReducedResults/modes_{P,Ut,Ur,Uz}.csv         # Mode bases (M x 4 matrix per variable)
+../EXP.csv                    # Experimental parameters: omega, qv, and split flags
+../coordinate.csv             # All spatial coordinates (r, theta, z)
+../ReducedResults/coefficients_{P,Ut,Ur,Uz}.csv  # Modal coefficients for each variable
+../ReducedResults/mean_{P,Ut,Ur,Uz}.csv          # Mean value for each variable
+../ReducedResults/modes_{P,Ut,Ur,Uz}.csv         # Mode bases (M x 4 matrix per variable)
 ```
 
 ---
