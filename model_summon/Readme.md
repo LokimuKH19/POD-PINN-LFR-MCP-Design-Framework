@@ -184,11 +184,32 @@ This design of this improved KNN Interpolator is in `InterpolatorORI.py`.
 ### 2 ways to construct PINN for regress the modal coefficients:
 - `ReconstructORI.py`: PINN with KNN interpolators
 - `Reconstruct.py`: PINN with NN interpolators
+- The Evaluation of the 2 models, see in the filefolders with the same names.
 
-In all three cases, the PINN only regresses the **modal coefficients**, and the full flow field is reconstructed using pre-interpolated modal basis functions.
+In both cases, the PINN only regresses the **modal coefficients**, and the full flow field is reconstructed using pre-interpolated modal basis functions.
 
 ### 📌 Governing Equations
 
 We define the residuals of the control equations in the blade reference frame for use in the loss function construction. These include the continuity equation and momentum equations (radial, tangential, axial), with centrifugal and Coriolis effects included. Also see in the paper.
 
+### 🔍 Notes on Weak Form and Domain Constraints
+In this work, we primarily focus on a localized modeling strategy based on reduced-order representations. Since our surrogate models are trained in a low-dimensional parametric space, the corresponding reconstruction is only valid within a spatially bounded region. This inherently restricts the direct application of boundary conditions in the classic PDE sense. And in `Reconstruct.py` I also attempt to use the mean value as another constraint, however I finally gave up it due to the high complexity of calculating the integral of the whole region.
+
+As a result, when physical constraints are introduced, we opt for enforcing them in a strong form — meaning they are applied pointwise (or approximately so) via physics-informed losses, rather than through variational integration.
+
+This choice is motivated both by practicality (reduced cost) and necessity (no access to full-domain information or Dirichlet boundaries). However, we recognize that weak formulations — where physical laws are enforced in an integral sense over test functions — offer powerful benefits, especially in aligning with classical finite element methods (FEM).
+
+To illustrate this, we plan to include a clean and minimal example of a weak-form PINN in this repository. Specifically, we will use a standard benchmark problem: the 2D lid-driven cavity flow.
+
+In that simplified setting, we can define a full domain and boundary conditions, allowing us to clearly demonstrate how to:
+
+- Construct a weak-form loss based on FEM principles
+
+- Integrate over the spatial domain using quadrature points
+
+- Compare the performance and flexibility with strong-form PINNs
+
+This supplementary example serves as a reference for those interested in more advanced PINN formulations — especially those that blend well with traditional numerical schemes like Galerkin FEM.
+
+Stay tuned for updates in the `examples/` folder, where the lid-driven cavity demo will be later included.
 
