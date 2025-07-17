@@ -194,7 +194,7 @@ We define the residuals of the control equations in the blade reference frame fo
 
 ⚠ Due to the NS equations used in our paper is defined on the rotator, therefore we must use the **relative velocities** in the following loss functions. In particular, the $u_\theta$ here should be $u_\theta-\omega\cdot r$ in the absolute reference system.
 
-⚠ The rotating direction of the impeller is clockwise, therefore negative '\omega' is used instead. In addition, the unit `rpm` needs to be transformed into `rad/s` before caculating the physical losses.
+⚠ The rotating direction of the impeller is clockwise (as the z direction selected along the coolant flow in our paper), therefore negative $\omega$ is used instead. In addition, the unit `rpm` needs to be transformed into `rad/s` before caculating the physical losses.
 
 ⚠ The Laplacian Operator in cylindrical coordinates should be: $\nabla^2 f = \frac{1}{r}\frac{\partial}{\partial r}\left(r\frac{\partial f}{\partial r}\right)+\frac{1}{r^2}\frac{\partial^2 f}{\partial r^2}+\frac{\partial^2 f}{\partial z^2}$
 
