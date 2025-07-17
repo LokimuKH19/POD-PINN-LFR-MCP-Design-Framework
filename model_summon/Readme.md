@@ -192,6 +192,10 @@ In both cases, the PINN only regresses the **modal coefficients**, and the full 
 
 We define the residuals of the control equations in the blade reference frame for use in the loss function construction. These include the continuity equation and momentum equations (radial, tangential, axial), with centrifugal and Coriolis effects included. Also see in the paper.
 
+```math
+signal
+```
+
 ### 🔍 Notes on Weak Form and Domain Constraints
 In this work, we primarily focus on a localized modeling strategy based on reduced-order representations. Since our surrogate models are trained in a low-dimensional parametric space, the corresponding reconstruction is only valid within a spatially bounded region. This inherently restricts the direct application of boundary conditions in the classic PDE sense. And in `Reconstruct.py` I also attempt to use the mean value as another constraint, however I finally gave up it due to the high complexity of calculating the integral of the whole region.
 
