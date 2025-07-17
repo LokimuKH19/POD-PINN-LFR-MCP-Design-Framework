@@ -192,21 +192,21 @@ In both cases, the PINN only regresses the **modal coefficients**, and the full 
 
 We define the residuals of the control equations in the blade reference frame for use in the loss function construction. These include the continuity equation and momentum equations (radial, tangential, axial), with centrifugal and Coriolis effects included. Also see in the paper.
 
-- The Continuum Equation
+- The Continuum Equation:
 ```math
 F_C(u_r,u_\theta,u_z)=\frac{1}{r}\frac{\partial(ru_r)}{\partial r} + \frac{1}{r}\frac{\partial u_\theta}{\partial \theta}+\frac{\partial u_z}{\partial z}=0
 ```
-- The r-Momentum Equation
+- The r-Momentum Equation:
 ```math
 F_R(u_r,u_\theta,u_z,p)=u_r\frac{\partial u_r}{\partial r} + \frac{u_\theta}{r}\frac{\partial u_r}{\partial \theta}+u_z\frac{\partial u_r}{\partial z}-\frac{u_\theta^2}{r}+\frac{1}{\rho}\frac{\partial p}{\partial r}-\frac{\mu}{\rho}\left(\nabla^2 u_r-\frac{u_r}{r^2}-\frac{2}{r^2}\frac{\partial u_\theta}{\partial \theta}\right)-\omega^2 r+2\omega u_\theta=0
 ```
 
-- The θ-Momentum Equation
+- The θ-Momentum Equation:
 ```math
 F_Θ(u_r,u_\theta,u_z,p)=u_r\frac{\partial u_\theta}{\partial r} + \frac{u_\theta}{r}\frac{\partial u_\theta}{\partial \theta}+u_z\frac{\partial u_\theta}{\partial z}+\frac{u_\theta u_r}{r}+\frac{1}{\rho r}\frac{\partial p}{\partial \theta}-\frac{\mu}{\rho}\left(\nabla^2 u_\theta-\frac{u_\theta}{r^2}+\frac{2}{r^2}\frac{\partial u_r}{\partial \theta}\right)-2\omega u_r=0
 ```
 
-- The z-Momentum Equation
+- The z-Momentum Equation:
 ```math
 F_Z(u_r,u_\theta,u_z,p)=u_r\frac{\partial u_z}{\partial r} + \frac{u_\theta}{r}\frac{\partial u_z}{\partial \theta}+u_z\frac{\partial u_z}{\partial z}+\frac{1}{\rho}\frac{\partial p}{\partial z}-\frac{\mu}{\rho}\nabla^2 u_z+g=0
 ```
