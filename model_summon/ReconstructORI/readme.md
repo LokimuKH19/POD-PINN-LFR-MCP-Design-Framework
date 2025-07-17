@@ -186,7 +186,18 @@ This strategy combines:
 - **Fast convergence** of data-only models
 - **Accuracy + physical consistency** of physics-regularized models
 
-This hybrid training scheme is expected to **reduce total training time** while improving **long-term prediction quality** and robustness. After adding the `pretrain_epoch` parameters to `` 
+This hybrid training scheme is expected to **reduce total training time** while improving **long-term prediction quality** and robustness. After adding the `pretrain_epoch` parameters to `train_PINN()` function, the model switches to the loss function without physical constraints before PINN training, in order to make the starting point of both the train loss and test loss lower:
+```python
+    if pretrain_epoch:
+        # pretrain the model with `pretrain_epoch` epochs
+        system.use_physics_loss = False
+        for ep in range(1, pretrain_epoch+1):
+            system.pretrain_epoch += 1
+            train_loss, test_loss, phy_loss = system.step(coord_batch_size)
+            print(f"[PretrainEpoch {ep:04d} Summary] Avg Train Loss = {train_loss:.6f} | Avg Test Loss = {test_loss:.6f}")
+            train_loss_history.append(train_loss)
+            test_loss_history.append(test_loss)
+```
 
 🚀 And, we got these convergence curves:
 
