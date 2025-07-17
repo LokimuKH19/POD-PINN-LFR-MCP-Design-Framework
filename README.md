@@ -68,17 +68,16 @@ We used interpolation (nearest neighbor in the paper, not so accurate as we expe
 
 ### 4. Graphical Abstract
 ![Graphical Abstract](graphical_abstract.png)
+📌For academic presentation only
+
 
 ### 5. 🛠️ Potential Extensions
-
 Here are some ideas for extending the current work:
 
 - **Dynamic POD (DPOD)**: Include time as an input to capture temporal evolution of modal coefficients.
 - **Truncated mode control**: Use only top-N energy modes for faster convergence.
 - **Multi-physics coupling**: Extend the model to handle joint prediction of pressure, velocity, temperature fields, etc.
 - **Uncertainty quantification**: Add dropout or Bayesian layers to estimate confidence intervals.
-
-📌For academic presentation only
 
 ---
 
