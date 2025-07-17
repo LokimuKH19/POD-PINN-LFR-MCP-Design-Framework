@@ -192,8 +192,13 @@ In both cases, the PINN only regresses the **modal coefficients**, and the full 
 
 We define the residuals of the control equations in the blade reference frame for use in the loss function construction. These include the continuity equation and momentum equations (radial, tangential, axial), with centrifugal and Coriolis effects included. Also see in the paper.
 
+- The Continuum Equation
 ```math
-signal
+F_C(u_r,u_\theta,u_z)=\frac{1}{r}\frac{\partial ru_r}{\partial r} + \frac{1}{r}\frac{\partial u_\theta}{\partial \theta}+\frac{\partial u_z}{\partial z}=0
+```
+- The r-Momentum Equation
+```math
+F_R(u_r,u_\theta,u_z,p)=u_r\frac{\partial u_r}{\partial r} + \frac{u_\theta}{r}\frac{\partial u_r}{\partial \theta}
 ```
 
 ### 🔍 Notes on Weak Form and Domain Constraints
