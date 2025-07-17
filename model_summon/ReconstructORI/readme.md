@@ -137,8 +137,8 @@ Even though the physics-supervised model may not reach as low a **train loss** a
 
 We employ a **mini-batch sampling strategy** over spatial coordinates to compute physics residuals at each epoch. Even with this stochastic method, we observe:
 
-- The initial physics loss is as high as **~13.0** in early training.
-- Over the course of training, the physics loss stabilizes and converges to the range of **~0.1**, showing the network is learning to obey the physical laws embedded in the equations.
+- The initial physics loss is as high as **~14.0** in early training.
+- Over the course of training, the physics loss stabilizes and converges to the range of **~1** even the points of each mini batch were selected randomly at each epoch, showing the network is learning to obey the physical laws embedded in the equations.
 
 This reflects the benefit of injecting physics consistency even if applied only at randomly sampled coordinate subsets during each epoch.
 
