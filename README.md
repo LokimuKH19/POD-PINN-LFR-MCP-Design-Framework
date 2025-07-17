@@ -4,6 +4,16 @@
 
 This repo is for predicting the flow field of a **lead-cooled fast reactor main pump** under different operating conditions — quickly. Like, way faster than rerunning CFD every single time. The idea is: get the trends, save your time, and maybe (just maybe) shorten the design loop in the early stages.
 
+
+### ✅ Why POD-PINN?
+
+Instead of directly regressing full-field quantities (which are typically high-dimensional and expensive), we predict only the **modal coefficients** of a reduced-order basis, obtained via Proper Orthogonal Decomposition (POD). This ensures:
+
+- **Dimensionality reduction**: The network only needs to regress a handful of coefficients (e.g., 4), drastically lowering the complexity of the learning task.
+- **Physical structure preservation**: POD modes encode the dominant flow structures; thus, reconstructed fields retain meaningful physics.
+- **Improved generalization**: By predicting only low-dimensional outputs, the risk of overfitting is reduced.
+- **Efficient deployment**: Real-time predictions become feasible thanks to lightweight inference.
+
 ## Compared against what?
 
 The model was trained and tested using good ol’ CFD results — **Ansys CFX** simulations, to be exact. It's not just guessing in the dark.
@@ -73,6 +83,15 @@ This model is experimental and was made in a lab — not a control room.
 > You've been warned. Use wisely. Or at least don't use it to control an actual LFR MCP.
 
 ---
+
+### 🛠️ Potential Extensions
+
+Here are some ideas for extending the current work:
+
+- **Dynamic POD (DPOD)**: Include time as an input to capture temporal evolution of modal coefficients.
+- **Truncated mode control**: Use only top-N energy modes for faster convergence.
+- **Multi-physics coupling**: Extend the model to handle joint prediction of pressure, velocity, temperature fields, etc.
+- **Uncertainty quantification**: Add dropout or Bayesian layers to estimate confidence intervals.
 
 ## 🧠 Bonus: Why this matters
 
