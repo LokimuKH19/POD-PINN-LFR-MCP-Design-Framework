@@ -181,10 +181,9 @@ However, the initial implementation lacked a data pre-loading (pre-reading) mech
 This design of this improved KNN Interpolator is in `InterpolatorORI.py`.
 
 ## 🎥 Now the modes become C2 functions. So PINN Construction is continued
-### 3 ways to construct PINN for regress the modal coefficients:
+### 2 ways to construct PINN for regress the modal coefficients:
 - `ReconstructORI.py`: PINN with KNN interpolators
 - `Reconstruct.py`: PINN with NN interpolators
-- `ReconstructWEAK.py`: PINN with KNN interpolators, but with weak form of the equation loss functions.
 
 In all three cases, the PINN only regresses the **modal coefficients**, and the full flow field is reconstructed using pre-interpolated modal basis functions.
 
