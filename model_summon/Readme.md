@@ -7,7 +7,7 @@ In this folder, you’ll find the raw CFD data used for POD decomposition.
 ### 🧾 Files
 
 - `coordinates.csv`  
-  Contains the **polar coordinates** (`r`, `θ`, `z`) of all sampling points. These are taken from a thin cylindrical slice at `span = 0.65`, so the `r` values barely change — the variation mainly lies in `θ` (circumferential) and `z` (axial).
+  Contains the **polar coordinates** (`r`, `θ`, `z`) of all sampling points. These are taken from a thin cylindrical slice at `span = 0.65`, so the `r` values barely change — the variation mainly lies in `θ` (circumferential) and `z` (axial). [We haven't unlock the technology for performing SVD on a very large scale matrix, thus we only focus on several key spans which can represent the flow characteristics within the pump.]
 
 - `P.csv`, `Ur.csv`, `Ut.csv`, `Uz.csv`  
   Each file corresponds to a physical quantity:
