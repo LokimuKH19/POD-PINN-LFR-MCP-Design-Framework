@@ -218,6 +218,8 @@ This helps the Global Learning Rate‌ to decrease intelligently according to th
 
 ![HybridModel](./Losscurve_SEED42_LR0.01_HD30_HL2_Epoch113_WithPhysics1_WithBatch1.png)
 
+> The first 50 epochs are in the pretraining stage. 
+
 This model experienced the least iterations and was the best model in this filefolder, with the final training loss **0.017** and testing loss **1.36**. This indicates an enhanced generalizability of the models with physical constraints caring about all spatial coordinates.
 
 ---
