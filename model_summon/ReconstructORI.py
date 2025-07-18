@@ -508,7 +508,7 @@ def train_PINN(system: PINNSystem, epochs: int = 9999, coord_batch_size: int = 6
             train_loss, test_loss = system.step_with_physics_batches(coord_batch_size)
             print(f"[Epoch {ep:04d}] Train Loss = {train_loss:.6f} | Test Loss = {test_loss:.6f}")
             # This Save
-            load_checkpoint("./Reconstruct/Step")
+            load_checkpoint("./ReconstructORI/Step")
             save_loss_curve(train_loss_history, test_loss_history,
                             SEED, system.lr, system.hidden_dim,
                             system.hidden_layers, system.use_physics_loss,
