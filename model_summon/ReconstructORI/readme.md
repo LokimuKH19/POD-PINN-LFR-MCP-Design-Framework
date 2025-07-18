@@ -212,11 +212,13 @@ In addition, I noticed that the PINN was underfitted in the previous experiment,
             verbose=True
         )
 ```
-This helps the Global Learning Rate‌ to decrease intelligently according to the training performance. If after `scheduler_patience` epochs the learning effect is not improved, then the Global Learning Rate will become `scheduler_factor` times.
+This helps the Global Learning Rate‌ to decrease intelligently according to the training performance. If after `scheduler_patience` epochs the learning effect is not improved, then the Global Learning Rate will become `scheduler_factor` times. In addition, I also activated `use_physics_batch=True` and trained for 63 epochs, which caused 63*63=3969 iterations.
 
 🚀 And, we got these convergence curves:
-![HybridModel](./Waiting....png)
 
+![HybridModel](./Losscurve_SEED42_LR0.01_HD30_HL2_Epoch113_WithPhysics1_WithBatch1.png)
+
+This model experienced the least iterations and was the best model in this filefolder, with the final training loss **0.017** and testing loss **1.36**. This indicates an enhanced generalizability of the models with physical constraints caring about all spatial coordinates.
 
 ---
 ## 📚 Future Plans
