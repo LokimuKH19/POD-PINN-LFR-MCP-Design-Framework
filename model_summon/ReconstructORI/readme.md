@@ -199,6 +199,21 @@ This hybrid training scheme is expected to **reduce total training time** while 
             test_loss_history.append(test_loss)
 ```
 
+In addition, I noticed that the PINN was underfitted in the previous experiment, thus I switched the initial lr from 1e-3 to 5e-3. Then a more reasonable training strategy was proposed:
+```
+    scheduler = None
+    if use_scheduler:
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            system.optim,
+            mode='min',
+            factor=scheduler_factor,
+            patience=scheduler_patience,
+            min_lr=scheduler_min_lr,
+            verbose=True
+        )
+```
+This helps the Global Learning Rate‌ to decrease intelligently according to the training performance. If after `scheduler_patience` epochs the learning effect is not improved, then the Global Learning Rate will become `scheduler_factor` times.
+
 🚀 And, we got these convergence curves:
 ![HybridModel](./Waiting....png)
 
