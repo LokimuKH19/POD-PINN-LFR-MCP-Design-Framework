@@ -314,6 +314,7 @@ class PINNSystem:
         num_coords = coords_all.shape[0]
         num_batches = (num_coords + coord_batch_size - 1) // coord_batch_size
 
+
         for i in range(num_batches):
             start = i * coord_batch_size
             end = min((i + 1) * coord_batch_size, num_coords)
@@ -350,36 +351,6 @@ def set_seed(seed=42):
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-
-
-# ======== Train ========
-def train_PINN(system: PINNSystem, epochs: int = 9999, coord_batch_size: int = 64, pretrain_epoch: int = 0):
-    train_loss_history = []
-    test_loss_history = []
-    # Pretrain Stage
-    if pretrain_epoch:
-        # pretrain the model with `pretrain_epoch` epochs
-        system.use_physics_loss = False
-        for ep in range(1, pretrain_epoch+1):
-            system.pretrain_epoch += 1
-            train_loss, test_loss, phy_loss = system.step(coord_batch_size)
-            print(f"[PretrainEpoch {ep:04d} Summary] Avg Train Loss = {train_loss:.6f} | Avg Test Loss = {test_loss:.6f}")
-            train_loss_history.append(train_loss)
-            test_loss_history.append(test_loss)
-    # Training Stage
-    system.use_physics_loss = system.use_physics_loss_original
-    for ep in range(1, epochs + 1):
-        system.epoch += 1
-        if system.use_physics_batch:
-            train_loss, test_loss = system.step_with_physics_batches(coord_batch_size)
-            print(f"[Epoch {ep:04d} Summary] Avg Train Loss = {train_loss:.6f} | Avg Test Loss = {test_loss:.6f}")
-        else:
-            train_loss, test_loss, phy_loss = system.step(coord_batch_size)
-            print(f"[Epoch {ep:04d} Summary] Avg Train Loss = {train_loss:.6f} | Avg Test Loss = {test_loss:.6f} "
-                  f"| Randomized Local Physics Loss = {phy_loss:.6f}")
-        train_loss_history.append(train_loss)
-        test_loss_history.append(test_loss)
-    return train_loss_history, test_loss_history
 
 
 # save model
@@ -482,20 +453,95 @@ def save_loss_curve(train_loss, test_loss, SEED, learning_rate, hidden_dim,
     return filepath
 
 
+# ======== Train ========
+def train_PINN(system: PINNSystem, epochs: int = 9999, coord_batch_size: int = 64, pretrain_epoch: int = 0,
+               use_scheduler: bool = True, scheduler_patience: int = 50, scheduler_factor: float = 0.75,
+               scheduler_min_lr: float = 1e-6):
+    """
+    Train the PINN system with optional pretraining and learning rate scheduler.
+
+    Args:
+        system (PINNSystem): The system to train.
+        epochs (int): Number of main training epochs.
+        coord_batch_size (int): Batch size for coordinate sampling.
+        pretrain_epoch (int): Number of pretraining epochs without physics loss.
+        use_scheduler (bool): Whether to enable LR scheduler.
+        scheduler_patience (int): Patience before reducing LR.
+        scheduler_factor (float): LR decay factor.
+        scheduler_min_lr (float): Minimum learning rate.
+
+    Returns:
+        train_loss_history (list): Training loss per epoch.
+        test_loss_history (list): Test loss per epoch.
+    """
+    train_loss_history = []
+    test_loss_history = []
+
+    # Scheduler setup
+    scheduler = None
+    if use_scheduler:
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            system.optim,
+            mode='min',
+            factor=scheduler_factor,
+            patience=scheduler_patience,
+            min_lr=scheduler_min_lr,
+            verbose=True
+        )
+    # Pretraining stage (no physics loss)
+    if pretrain_epoch:
+        print("[INFO] Starting pretraining...")
+        system.use_physics_loss = False
+        for ep in range(1, pretrain_epoch + 1):
+            system.pretrain_epoch += 1
+            train_loss, test_loss, _ = system.step(coord_batch_size)
+            print(f"[PretrainEpoch {ep:04d}] Train Loss = {train_loss:.6f} | Test Loss = {test_loss:.6f}")
+            train_loss_history.append(train_loss)
+            test_loss_history.append(test_loss)
+    # Enable physics loss if originally enabled
+    system.use_physics_loss = system.use_physics_loss_original
+    # Main training loop
+    print("[INFO] Starting main training...")
+    for ep in range(1, epochs + 1):
+        system.epoch += 1
+        if system.use_physics_batch:
+            train_loss, test_loss = system.step_with_physics_batches(coord_batch_size)
+            print(f"[Epoch {ep:04d}] Train Loss = {train_loss:.6f} | Test Loss = {test_loss:.6f}")
+            # This Save
+            load_checkpoint("./Reconstruct/Step")
+            save_loss_curve(train_loss_history, test_loss_history,
+                            SEED, system.lr, system.hidden_dim,
+                            system.hidden_layers, system.use_physics_loss,
+                            system.use_physics_batch, system.pretrain_epoch,
+                            save_dir="./ReconstructORI/Step"
+                            )
+        else:
+            train_loss, test_loss, phy_loss = system.step(coord_batch_size)
+            print(f"[Epoch {ep:04d}] Train Loss = {train_loss:.6f} | Test Loss = {test_loss:.6f} "
+                  f"| Physics Loss = {phy_loss:.6f}")
+        train_loss_history.append(train_loss)
+        test_loss_history.append(test_loss)
+        # Scheduler step based on test loss
+        if scheduler:
+            scheduler.step(test_loss)
+    return train_loss_history, test_loss_history
+
+
 # ======== Main Entry, Train Your Model Here ========
 if __name__ == "__main__":
     # random seed
+    global SEED
     SEED = 42
     set_seed(SEED)
     # Hyper Parameters
     hidden_dim = 30
     hidden_layers = 2
-    learning_rate = 1e-3
+    learning_rate = 1e-2
     coord_batch_size = 128
     use_physics_loss = True
-    use_physics_batch = False    # slow but accurate
-    epochs = 5000
-    pretrain_epochs = 0
+    use_physics_batch = True    # slow but accurate, can decrease the epochs
+    epochs = 63
+    pretrain_epochs = 50
 
     # ===== Initialize Model=====
     pinn = PINNSystem(
@@ -509,7 +555,10 @@ if __name__ == "__main__":
     # ===== Load Checkpoint if Exists =====
     checkpoint_path = "ReconstructORI"
     # ===== Train =====
-    train_loss, test_loss = train_PINN(pinn, epochs=epochs, coord_batch_size=coord_batch_size, pretrain_epoch=pretrain_epochs)
+    train_loss, test_loss = train_PINN(
+        pinn, epochs=epochs, coord_batch_size=coord_batch_size, pretrain_epoch=pretrain_epochs,
+        use_scheduler=True
+    )
     # ===== Save New Checkpoint =====
     save_checkpoint(pinn, SEED, checkpoint_path)
     save_loss_curve(
