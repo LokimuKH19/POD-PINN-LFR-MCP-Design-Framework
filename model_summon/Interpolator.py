@@ -8,7 +8,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 from scipy.stats import pearsonr
-from scipy.stats import pearsonr
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 
