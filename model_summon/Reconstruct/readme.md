@@ -40,5 +40,7 @@ In our recent experiments with physics-informed neural networks (PINNs) combined
 Although NN-based interpolation might not be as precise as KNN in direct interpolation tasks, the advantages in training speed, differentiability, and overall performance in PINN training make it a much better choice for practical purposes. It smooths out the training dynamics and provides gradients where needed, helping the model converge faster and generalize better.
 
 > In the future, if the interpolators based on NN are enhanced this method has potential to replace the KNN interpolator based POD-PINN.
+
 > I have tried similar ideas before, using the NNs to upgrade methods from linear algebras into a functional based one, see in [DRQI](https://github.com/LokimuKH19/DRQI)
+
 > Instead of viewing POD as a purely linear algebraic decomposition on discrete data, reformulating it as a variational optimization problem over function space might be a promising way. This naturally leads to a neural-network-based approach, where the basis functions are parameterized and trained directly to minimize projection error — enabling more flexible, physically-informed, and generalizable continuous modal learning.
