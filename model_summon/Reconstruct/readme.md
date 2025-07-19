@@ -66,9 +66,9 @@ This formula is an functional optimization problem, we only have to
 - Represent the **spatial mode function** \(\phi_\theta(x)\) using a neural network.
 - Define a loss function to find the mode that captures the most energy:
   
-\[
+```\math
 \mathcal{L}(\theta) = -\int_T \left( \int_\Omega u(x, t)\phi_\theta(x)dx \right)^2 dt + \lambda\left(\|\phi_\theta\|_{L^2}^2 - 1\right)^2
-\]
+```
 
 - Replace the integrals with **Monte Carlo** approximations using sampled data points.
 - Use **Adam** optimizer to train the network and get \(\phi_\theta(x)\).
@@ -87,11 +87,9 @@ We obtain:
 
 Once we obtain \(\phi_\theta(x)\), we project the solution field \(u(x,t)\) onto it to get the time-dependent coefficient:
 
-\[
-\boxed{
+```math
 \alpha(t) = \int_\Omega u(x, t) \cdot \phi_\theta(x) \, dx
-}
-\]
+```
 
 In code (discrete form):
 
