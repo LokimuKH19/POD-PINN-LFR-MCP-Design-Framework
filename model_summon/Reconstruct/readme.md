@@ -59,11 +59,11 @@ In the previous version, we employed pure data-driven POD to extract main modals
 
 In this formula, $x$ refers to the spatial coordinates, $t$ refers to different snapshots. And these snapshots come the CFD simulation results.
 
-This formula is an functional optimization problem, we only have to 
+This formula is an functional optimization problem, we only have to translate it into a function peak/valley problem by introducing a neural network $\phi_\theta(x)$.
 
-## 🔧 Key Idea
+### 🔧 Key Idea
 
-- Represent the **spatial mode function** \(\phi_\theta(x)\) using a neural network.
+- Represent the **spatial mode function** $\phi_\theta(x)$ using a neural network.
 - Define a loss function to find the mode that captures the most energy (should transfer to a minimize form and add a regularization term to improve smoothness of the loss function's landscape):
   
 ```math
@@ -71,19 +71,19 @@ This formula is an functional optimization problem, we only have to
 ```
 
 - Replace the integrals with **Monte Carlo** approximations using sampled data points.
-- Use **Adam** optimizer to train the network and get \(\phi_\theta(x)\).
+- Use **Adam** optimizer to train the network and get $\phi_\theta(x)$.
 
 ---
 
-## 🎯 What Do We Get?
+### 🎯 What Do We Get?
 
 We obtain:
-- A **neural network approximation** of the most energetic mode \(\phi_\theta(x)\).
+- A **neural network approximation** of the most energetic mode $\phi_\theta(x)$.
 - No need for matrix decomposition — we’re solving a **functional extremum problem** directly.
 
 ---
 
-## 📌 How to Compute Modal Coefficients?
+### 📌 How to Compute Modal Coefficients?
 
 Once we obtain \(\phi_\theta(x)\), we project the solution field \(u(x,t)\) onto it to get the time-dependent coefficient:
 
@@ -101,3 +101,44 @@ In code (discrete form):
 alpha_t = torch.einsum('mt,m->t', u_vals, phi_vals) * dx
 ```
 
+### 😰 Wait... We only obtained the 1st Modal and its correspounding coefficient after such treatment...
+
+Yes, your concern is correct. To train modals sequentially, orthogonality constraints should be added into the loss function. Suppose we have $\phi_1(x),\phi_2(x),...,\phi_{k-1}(x)$ now, to obtain $\phi_k(x;、theta)$, the following penalty term should be added to the loss function. Train your next model one by one. (And just watch how the error is accumulated desperately)
+
+```math
+\sum_{i=1}^{k-1} \left( \int_\Omega \phi_j(x;\theta) \cdot \phi_i(x) \, dx \right)^2
+```
+
+Or you might train all $k$ modes simultaneously by letting the neural network output multiple functions:
+
+```math
+\script{N}(x;\theta)=[\phi^{(1)}_\theta_1(x), \phi^{(2)}_\theta_2(x), \dots, \phi^{(k)}_\theta_k(x)]
+```
+
+Then add constraints which describes "The components of the model above is pairwise orthogonal", to the loss function.
+
+⚠️ Obviously, This approach is more elegant but significantly harder to optimize. The models structures are too complex causing difficulties to training.
+
+### 💀 And what's more, the most fatal problem, the order
+
+Unlike SVD, which naturally orders modes by descending eigenvalue (energy content), this functional optimization doesn’t inherently give you a way to control or sort the modes.
+
+You must train **a particular modal function at a time**, and ensure it's orthogonal to all previously obtained ones — which is nontrivial and not guaranteed in practice unless explicit constraints or projection steps are added.
+
+May be you can add more regularization terms?
+  - Gram-Schmidt orthogonality penalty
+  - Energy-based sorting constraint (encouraging high-variance modes to appear earlier)
+  - I once developed [Deep Rayleigh Quotient Iteration(DRQI)](https://github.com/LokimuKH19/DRQI) for **finding the 1st order eignevalue and its correspounding eigenfunction** of a differential operator with clear boundary conditions. Since POD fundamentally relies on extracting dominant modes via SVD—which is equivalent to solving an eigenvalue problem on the empirical covariance operator—we might leverage the DRQI framework to do this in function space. If this can be applied, we could possibly obtained the modals with energy-based sorting... However, while DRQI has shown promise in solving operator eigenvalue problems — and successfully passed benchmark tests such as the 1D neutron transport equation, 1~4D Laplace operator problem and Fokker-Plank operator problem — it currently lacks validation on nonlinear PDEs.
+
+
+### 🧪 No Testing Yet
+
+Due to the above compute cost and difficulty in managing multiple modes and ensuring orthogonality, **this idea has not yet been fully tested** in practice.
+
+---
+
+### 💡 Summary
+
+While this neural-functional approach to POD is elegant and insightful — bridging the gap between linear algebra and function space — it suffers from practical inefficiencies. Its scalability is currently limited, and managing mode quality and orthogonality remains an open challenge.
+
+That said, it's an exciting conceptual direction that could inspire new work in physics-informed dimensionality reduction — especially when paired with more powerful compute or smarter multi-mode training strategies.
