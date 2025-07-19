@@ -250,7 +250,8 @@ What you can do to analyze the mode are:
 
 - Run `UserInterface.py`;
 - Enter `http://127.0.0.1:7860` in your browser and jump to the UI;
+- `LoadModel` from `Reconstruct` and `ReconstructORI` filefolder;
 - Enter `omega` and `qv` according to the hints and press `submit`;
 - Obtain the flow field and other model information in the interface;
-- Save the results through the `flag` button
+- Save the results through the `flag` button.
 
