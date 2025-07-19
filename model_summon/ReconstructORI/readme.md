@@ -62,7 +62,7 @@ Computed from the residuals of:
 
 Residuals are calculated using autograd on reconstructed fields. Physics loss is scaled down:
 ```python
-physics_loss /= 1e7
+physics_loss /= 1e6
 ```
 
 ### 3. Combined Loss
