@@ -236,6 +236,8 @@ In that simplified setting, we can define a full domain and boundary conditions,
 
 - Compare the performance and flexibility with strong-form PINNs
 
+Stay tuned for updates in the `WeakForm/` folder, where the lid-driven cavity demo will be later included. This supplementary example will serve as a reference for those interested in more advanced PINN formulations — especially those that blend well with traditional numerical schemes like Galerkin FEM.
+
 ## 💻 Using the Model
 
 I developed a UI in `UserInterface.py` based on `gradio`. If you don't have it, please enter the console and enter:
@@ -244,7 +246,11 @@ I developed a UI in `UserInterface.py` based on `gradio`. If you don't have it, 
 pip install gradio==5.38.0
 ```
 
-This supplementary example serves as a reference for those interested in more advanced PINN formulations — especially those that blend well with traditional numerical schemes like Galerkin FEM.
+What you can do to analyze the mode are:
 
-Stay tuned for updates in the `examples/` folder, where the lid-driven cavity demo will be later included.
+- Run `UserInterface.py`;
+- Enter `http://127.0.0.1:7860` in your browser and jump to the UI;
+- Enter `omega` and `qv` according to the hints and press `submit`;
+- Obtain the flow field and other model information in the interface;
+- Save the results through the `flag` button
 
