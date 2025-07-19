@@ -30,11 +30,11 @@ In our recent experiments with physics-informed neural networks (PINNs) combined
 
 | 🧩 Aspect                     | 🧭 KNN                     | 🚀 NN Interpolation         |
 |------------------------------|---------------------------|-----------------------------|
-| 🎯 Accuracy                  | ✅ Better (Train Loss 0.09, Test Loss 1.31)         | 🔸 Worse (the Least Test Loss 2.12 is given at the 35th epoch, with the Training Loss 0.84) |
+| 🎯 Accuracy                  | ✅ Better (Train Loss 0.11, Test Loss 1.39)         | 🔸 Worse (the Least Test Loss 2.12 is given at the 35th epoch, with the Training Loss 0.84) |
 | 🔁 Smoothness                | ↓ C1 on datapoints, C2 on others position                    | ↑ at least C2                       |
 | ⚡ Training Speed            | 🐢 Slow (Based on the Interpolators with Dataset)       | ⚡ Significantly Faster  |
 | 📉 Physics Residual          | ✅ Lower (×1e-7~1e-6 to normalize)                   | 🔸 Higher (×1e-17~1e-15 to normalize)           |
-| 🧪 Generalization (Test Loss)| ✅ Slightly Better         | ✅ Better than the network without physical constraints   |
+| 🧪 Generalization (comparing with Common NN whose test loss was 2.2)| ✅ Better         | ✅ Slightly Better   |
 
 ## ✅ Practical Conclusion
 Although NN-based interpolation might not be as precise as KNN in direct interpolation tasks, the advantages in training speed, differentiability, and overall performance in PINN training make it a much better choice for practical purposes. It smooths out the training dynamics and provides gradients where needed, helping the model converge faster and generalize better.
