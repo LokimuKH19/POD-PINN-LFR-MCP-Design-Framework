@@ -66,7 +66,7 @@ This formula is an functional optimization problem, we only have to
 - Represent the **spatial mode function** \(\phi_\theta(x)\) using a neural network.
 - Define a loss function to find the mode that captures the most energy:
   
-```\math
+```math
 \mathcal{L}(\theta) = -\int_T \left( \int_\Omega u(x, t)\phi_\theta(x)dx \right)^2 dt + \lambda\left(\|\phi_\theta\|_{L^2}^2 - 1\right)^2
 ```
 
