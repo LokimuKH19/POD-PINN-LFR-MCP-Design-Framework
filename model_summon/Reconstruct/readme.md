@@ -54,7 +54,7 @@ In the previous version, we employed pure data-driven POD to extract main modals
 🔁 What my idea is, regarding the POD as a **functional optimization problem**, which means searching for a series of **orthogonal function basis** in the Hilbert space and achieving the smallest projection error with the input functions. Possibly written as the following form?
 
 ```math
- \max_{\phi\in H} \int_\Omega \left(\int_T u(x,t)\phi(x) dx \right)^2 dt\quad\quad \rm{s.t.} \rm{norm}(\phi)_L^2 = 1
+ \max_{\phi\in H} \int_\Omega \left(\int_T u(x,t)\phi(x) dx \right)^2 dt\quad\quad \rm{s.t.} \|\phi\|_{L^2} = 1
 ```
 
 In this formula, $x$ refers to the spatial coordinates, $t$ refers to different snapshots. And these snapshots come the CFD simulation results.
@@ -64,7 +64,7 @@ This formula is an functional optimization problem, we only have to
 ## 🔧 Key Idea
 
 - Represent the **spatial mode function** \(\phi_\theta(x)\) using a neural network.
-- Define a loss function to find the mode that captures the most energy:
+- Define a loss function to find the mode that captures the most energy (should transfer to a minimize form and add a regularization term to improve smoothness of the loss function's landscape):
   
 ```math
 \mathcal{L}(\theta) = -\int_T \left( \int_\Omega u(x, t)\phi_\theta(x)dx \right)^2 dt + \lambda\left(\|\phi_\theta\|_{L^2}^2 - 1\right)^2
