@@ -49,10 +49,10 @@ Although NN-based interpolation might not be as precise as KNN in direct interpo
 
 ## 🧠 Combinining POD and Modal Interpolation with NN together?
 
-In the previous version, we employed data-driven POD to extract main modals as eigenvectors. In specific, SVD is performed to snapshots matrix $X\in\double{R}^{m\times n}$ and the best **low-rank approximation** is obtained by combining the modals and the relative coefficients. However, these processes are still linear algebra tricks on **discrete matrix** and don't rely on the continuity of the practical physical system (or functional background), which therefore constraints its generalizability on physical modeling tasks.
+In the previous version, we employed data-driven POD to extract main modals as eigenvectors. In specific, SVD is performed to snapshots matrix $X\in R^{m\times n}$ and the best **low-rank approximation** is obtained by combining the modals and the relative coefficients. However, these processes are still linear algebra tricks on **discrete matrix** and don't rely on the continuity of the practical physical system (or functional background), which therefore constraints its generalizability on physical modeling tasks.
 
 🔁 What my idea is, regarding the POD as a **functional optimization problem**, which means searching for a series of **orthogonal function basis** in the Hilbert space and achieving the smallest projection error with the input functions. Possibly written as the following form?
 
 ```math
- \max \phi\in\double{H} \int_\Omega \left(\int_T u(x,t)\phi(x) dx \right)^2 dt\quad\quad \rm{s.t.} ||\phi||_L^2 = 1
+ \max_\phi\in H \int_\Omega \left(\int_T u(x,t)\phi(x) dx \right)^2 dt\quad\quad \rm{s.t.} \mid\mid\phi\mid\mid_L^2 = 1
 ```
