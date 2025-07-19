@@ -103,7 +103,7 @@ alpha_t = torch.einsum('mt,m->t', u_vals, phi_vals) * dx
 
 ### 😰 Wait... We only obtained the 1st Modal and its correspounding coefficient after such treatment...
 
-Yes, your concern is correct. To train modals sequentially, orthogonality constraints should be added into the loss function. Suppose we have $\phi_1(x),\phi_2(x),...,\phi_{k-1}(x)$ now, to obtain $\phi_k(x;、theta)$, the following penalty term should be added to the loss function. Train your next model one by one. (And just watch how the error is accumulated desperately)
+Yes, your concern is correct. To train modals sequentially, orthogonality constraints should be added into the loss function. Suppose we have $\phi_1(x),\phi_2(x),...,\phi_{k-1}(x)$ now, to obtain $\phi_k(x;\theta)$, the following penalty term should be added to the loss function. Train your next model one by one. (And just watch how the error is accumulated desperately)
 
 ```math
 \sum_{i=1}^{k-1} \left( \int_\Omega \phi_j(x;\theta) \cdot \phi_i(x) \, dx \right)^2
