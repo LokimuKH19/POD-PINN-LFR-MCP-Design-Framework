@@ -46,3 +46,13 @@ Although NN-based interpolation might not be as precise as KNN in direct interpo
 > I have tried similar ideas before, using the NNs to upgrade methods from linear algebras into a functional based one, see in [DRQI](https://github.com/LokimuKH19/DRQI).
 
 > Instead of viewing POD as a purely linear algebraic decomposition on discrete data, reformulating it as a variational optimization problem over function space might be a promising way. This naturally leads to a neural-network-based approach, where the basis functions are parameterized and trained directly to minimize projection error — enabling more flexible, physically-informed, and generalizable continuous modal learning.
+
+## 🧠 Combinining POD and Modal Interpolation with NN together?
+
+In the previous version, we employed data-driven POD to extract main modals as eigenvectors. In specific, SVD is performed to snapshots matrix $X\in\double{R}^{m\times n}$ and the best **low-rank approximation** is obtained by combining the modals and the relative coefficients. However, these processes are still linear algebra tricks on **discrete matrix** and don't rely on the continuity of the practical physical system (or functional background), which therefore constraints its generalizability on physical modeling tasks.
+
+🔁 What my idea is, regarding the POD as a **functional optimization problem**, which means searching for a series of **orthogonal function basis** in the Hilbert space and achieving the smallest projection error with the input functions. Possibly written as the following form?
+
+```math
+ \max \phi\in\double{H} \int_\Omega \left(\int_T u(x,t)\phi(x) dx \right)^2 dt\quad\quad \rm{s.t.} ||\phi||_L^2 = 1
+```
