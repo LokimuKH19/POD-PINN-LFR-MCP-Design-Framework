@@ -4,7 +4,7 @@
 
 In this folder, you’ll find the raw CFD data used for POD decomposition.
 
-### 🧾 Files
+### 🧾 Files Dependency
 
 - `coordinates.csv`  
   Contains the **polar coordinates** (`r`, `θ`, `z`) of all sampling points. These are taken from a thin cylindrical slice at `span = 0.65`, so the `r` values barely change — the variation mainly lies in `θ` (circumferential) and `z` (axial). [We haven't unlock the technology for performing SVD on a very large scale matrix, thus we only focus on several key spans which can represent the flow characteristics within the pump.]
@@ -47,13 +47,13 @@ We take a bunch of CFD snapshots (each column in the data = one operating condit
 This gives us a low-dimensional approximation of the original flow field:
 
 ```math
-\mathbf{U}(\mathbf{x}, t) \approx \sum_{i=1}^{k} a_i(t) \, \phi_i(\mathbf{x}) + \bar{\mathbf{U}}(\mathbf{x})
+\mathbf{U}(\mathbf{x}, t) \approx \sum_{i=1}^{k} a_i(t) \, \phi_i(\mathbf{x}) + \bar{\mathbf{U}}(t)
 ```
 
 Where:
     - $ϕ_i(x)$ are the spatial POD modes (i.e., flow patterns)
     - $a_i(t)$ are modal coefficients per condition
-    - $\bar{U}(x)$ is the mean field — don’t forget this! Without it, your flow field will float in the void.
+    - $\bar{U}(t)$ is the mean field at each snapshots $t$ — don’t forget this! Without it, your flow field will float in the void.
 
 ### 📁 What's in `ReduceResults/`
 
