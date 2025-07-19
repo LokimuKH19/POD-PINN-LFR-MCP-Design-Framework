@@ -20,6 +20,8 @@ In this folder, you’ll find the raw CFD data used for POD decomposition.
 - `EXP.csv`
   Contains the operating conditions of the pump, each row represents a CFD result with different rotating speed $\omega$ (rpm) and outlet volumn flow rate $q_v$ (m3/s). The third column `test` refers to whether this result belongs to the testing set or not.
 
+- For the dependency of the packages used in this repository, see in the [DRQI Repo](https://github.com/LokimuKH19/DRQI/blob/main/requirements.txt).
+
 ### 🌀 Symmetry Assumption
 
 Because the blade geometry is **periodic**, the flow field also shows symmetry.  
@@ -233,6 +235,14 @@ In that simplified setting, we can define a full domain and boundary conditions,
 - Integrate over the spatial domain using quadrature points
 
 - Compare the performance and flexibility with strong-form PINNs
+
+## 💻 Using the Model
+
+I developed a UI in `UserInterface.py` based on `gradio`. If you don't have it, please enter the console and enter:
+
+```cmd
+pip install gradio==5.38.0
+```
 
 This supplementary example serves as a reference for those interested in more advanced PINN formulations — especially those that blend well with traditional numerical schemes like Galerkin FEM.
 
