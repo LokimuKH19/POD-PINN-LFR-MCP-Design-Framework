@@ -49,10 +49,57 @@ Although NN-based interpolation might not be as precise as KNN in direct interpo
 
 ## 🧠 Combinining POD and Modal Interpolation with NN together?
 
-In the previous version, we employed data-driven POD to extract main modals as eigenvectors. In specific, SVD is performed to snapshots matrix $X\in R^{m\times n}$ and the best **low-rank approximation** is obtained by combining the modals and the relative coefficients. However, these processes are still linear algebra tricks on **discrete matrix** and don't rely on the continuity of the practical physical system (or functional background), which therefore constraints its generalizability on physical modeling tasks.
+In the previous version, we employed pure data-driven POD to extract main modals as eigenvectors. In specific, SVD is performed to snapshots matrix $X\in R^{m\times n}$ and the best **low-rank approximation** is obtained by combining the modals and the relative coefficients. However, these processes are still linear algebra tricks on **discrete matrix** and don't rely on the continuity of the practical physical system (or functional background), which therefore constraints its generalizability on physical modeling tasks.
 
 🔁 What my idea is, regarding the POD as a **functional optimization problem**, which means searching for a series of **orthogonal function basis** in the Hilbert space and achieving the smallest projection error with the input functions. Possibly written as the following form?
 
 ```math
- \max_{\phi\in H} \int_\Omega \left(\int_T u(x,t)\phi(x) dx \right)^2 dt\quad\quad \rm{s.t.} \mid\mid \phi \mid\mid _L^2 = 1
+ \max_{\phi\in H} \int_\Omega \left(\int_T u(x,t)\phi(x) dx \right)^2 dt\quad\quad \rm{s.t.} \rm{norm}(\phi)_L^2 = 1
 ```
+
+In this formula, $x$ refers to the spatial coordinates, $t$ refers to different snapshots. And these snapshots come the CFD simulation results.
+
+This formula is an functional optimization problem, we only have to 
+
+## 🔧 Key Idea
+
+- Represent the **spatial mode function** \(\phi_\theta(x)\) using a neural network.
+- Define a loss function to find the mode that captures the most energy:
+  
+\[
+\mathcal{L}(\theta) = -\int_T \left( \int_\Omega u(x, t)\phi_\theta(x)dx \right)^2 dt + \lambda\left(\|\phi_\theta\|_{L^2}^2 - 1\right)^2
+\]
+
+- Replace the integrals with **Monte Carlo** approximations using sampled data points.
+- Use **Adam** optimizer to train the network and get \(\phi_\theta(x)\).
+
+---
+
+## 🎯 What Do We Get?
+
+We obtain:
+- A **neural network approximation** of the most energetic mode \(\phi_\theta(x)\).
+- No need for matrix decomposition — we’re solving a **functional extremum problem** directly.
+
+---
+
+## 📌 How to Compute Modal Coefficients?
+
+Once we obtain \(\phi_\theta(x)\), we project the solution field \(u(x,t)\) onto it to get the time-dependent coefficient:
+
+\[
+\boxed{
+\alpha(t) = \int_\Omega u(x, t) \cdot \phi_\theta(x) \, dx
+}
+\]
+
+In code (discrete form):
+
+```python
+# coords: (M, D)
+# u_vals: (M, T) -- each column is u(x) at time t
+# phi_vals = phi_theta(coords)  # (M,)
+
+alpha_t = torch.einsum('mt,m->t', u_vals, phi_vals) * dx
+```
+
