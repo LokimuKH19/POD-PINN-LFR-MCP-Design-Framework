@@ -54,5 +54,5 @@ In the previous version, we employed data-driven POD to extract main modals as e
 🔁 What my idea is, regarding the POD as a **functional optimization problem**, which means searching for a series of **orthogonal function basis** in the Hilbert space and achieving the smallest projection error with the input functions. Possibly written as the following form?
 
 ```math
- \max_\phi\in H \int_\Omega \left(\int_T u(x,t)\phi(x) dx \right)^2 dt\quad\quad \rm{s.t.} \mid\mid\phi\mid\mid_L^2 = 1
+ \max_\phi\in H \int_\Omega \left(\int_T u(x,t)\phi(x) dx \right)^2 dt\quad\quad \rm{s.t.} \vert\vert\phi\vert\vert _L^2 = 1
 ```
