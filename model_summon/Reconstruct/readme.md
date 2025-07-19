@@ -26,6 +26,8 @@ In our recent experiments with physics-informed neural networks (PINNs) combined
 
 ![POD-PINN with NN](./Losscurve_SEED42_LR0.005_HD30_HL2_Epoch113_WithPhysics1_WithBatch1.png)
 
+❗The first 50 epochs are in the pre-training stage.
+
 ### ⚖️ 5. Overall Trade-off
 
 | 🧩 Aspect                     | 🧭 KNN                     | 🚀 NN Interpolation         |
