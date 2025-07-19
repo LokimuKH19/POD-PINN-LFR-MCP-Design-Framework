@@ -109,11 +109,7 @@ Yes, your concern is correct. To train modals sequentially, orthogonality constr
 \sum_{i=1}^{k-1} \left( \int_\Omega \phi_j(x;\theta) \cdot \phi_i(x) \, dx \right)^2
 ```
 
-Or you might train all $k$ modes simultaneously by letting the neural network output multiple functions:
-
-```math
-N(x;\theta)=[\phi^{(1)}_\theta_1(x), \phi^{(2)}_\theta_2(x), \dots, \phi^{(k)}_\theta_k(x)]
-```
+Or you might train all $k$ modes simultaneously by letting the neural network output multiple functions: $N(x;\theta)=[\phi^{(1)}_\theta_1(x), \phi^{(2)}_\theta_2(x), \dots, \phi^{(k)}_\theta_k(x)]$.
 
 Then add constraints which describes "The components of the model above is pairwise orthogonal", to the loss function.
 
