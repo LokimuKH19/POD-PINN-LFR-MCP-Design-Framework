@@ -24,7 +24,7 @@ In our recent experiments with physics-informed neural networks (PINNs) combined
 - ⚠️ Physics residual loss with NN interpolation tends to be higher (due to the interpolation with pure NN might encounter issues like overfitting or something, though I have tried)  
 - 📈 **Test loss actually goes down with Train Loss** in early training stage, indicating better generalization, as shown in the figure:
 
-![POD-PINN with NN](./Losscurve_SEED42_LR0.005_HD30_HL2_Epoch113_WithPhysics1_WithBatch1.png)
+![POD-PINN with NN](./Losscurve_SEED42_LR0.005_HD30_HL2_Epoch85_WithPhysics1_WithBatch1_Pretrain50.png)
 
 ❗The first 50 epochs are in the pre-training stage.
 
