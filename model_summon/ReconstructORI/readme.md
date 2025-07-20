@@ -216,7 +216,7 @@ This helps the Global Learning Rate‌ to decrease intelligently according to th
 
 🚀 And, we got these convergence curves:
 
-![HybridModel](./Losscurve_SEED42_LR0.01_HD30_HL2_Epoch113_WithPhysics1_WithBatch1.png)
+![HybridModel](./Losscurve_SEED42_LR0.01_HD30_HL2_Epoch113_WithPhysics1_WithBatch1_Pretrain50.png)
 
 > The first 50 epochs are in the pretraining stage. From the convergence curves we can see the physics constraints significantly improved the astringency of both the training and testing losses.
 
