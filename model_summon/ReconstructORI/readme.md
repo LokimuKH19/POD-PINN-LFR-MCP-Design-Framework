@@ -150,7 +150,7 @@ This reflects the benefit of injecting physics consistency even if applied only 
 
 **Model With Physical Constraints**
 
-![Model With Physical Constraints (Convergence Together but Underfitting)](./Losscurve_SEED42_LR0.001_HD30_HL2_Epoch5000_WithPhysics1_WithBatch0_Pretrain0.png)
+![Model With Physical Constraints (Convergence Together but Underfitting)](./Losscurve_SEED42_LR0.001_HD30_HL2_Epoch5000_WithPhysics1_WithBatch0.png)
 
 ---
 
