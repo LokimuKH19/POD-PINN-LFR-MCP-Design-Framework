@@ -14,9 +14,13 @@ Instead of directly regressing full-field quantities (which are typically high-d
 - **Improved generalization**: By predicting only low-dimensional outputs, the risk of overfitting is reduced.
 - **Efficient deployment**: Real-time predictions become feasible thanks to lightweight inference.
 
-## Compared against what?
+## ⚖ Compared against what?
 
-The model was trained and tested using good ol’ CFD results — **Ansys CFX** simulations, to be exact. It's not just guessing in the dark.
+The model was trained and tested using good ol’ CFD results — **Ansys CFX** simulations, to be exact. It's not just guessing in the dark. Although CFD simulations themselves are subject to modeling and numerical errors, the model’s effort to fit CFD data and to satisfy the governing equations are not always aligned. As a result, defining the loss purely as the relative error between the model output and CFD results is ultimately a compromise.
+
+In fact, the CFD data used for pretraining already exhibit signs of **insufficient convergence**. For example, the pump cases under a steady-state rotating reference frame, the solution is expected to exhibit rotational symmetry across blades. However, as shown in our research paper, the CFD results display noticeable discrepancies between flow fields in adjacent blade passages—despite being purely numerical results, unaffected by experimental noise or boundary uncertainties. This strongly suggests that the CFD simulation itself has not fully converged to the correct physical solution.
+
+Nevertheless, whether using `./model_summon/ReconstructORI.py` (KNN-based modal interpolation) or `./model_summon/Reconstruct.py` (neural network-based interpolation), training the model beyond the pretraining phase leads to a substantial drop—typically **1 to 2 orders** of magnitude—in the physics-based residual loss. This reduction is accompanied by a simultaneous improvement in test performance, indicating that the physics-informed training helps correct imperfections in the CFD data rather than merely fitting them.
 
 ## So... how well did it do?
 
