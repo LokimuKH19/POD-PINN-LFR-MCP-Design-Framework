@@ -467,7 +467,7 @@ def save_loss_curve(train_loss, test_loss, SEED, learning_rate, hidden_dim,
 
     filename = (f"Losscurve_SEED{SEED}_LR{learning_rate}_HD{hidden_dim}_"
                 f"HL{hidden_layers}_Epoch{epochs}_WithPhysics{int(use_physics_loss)}"
-                f"_WithBatch{int(use_physics_batch)}{'' if pretrain else '_Pretrain'+str(pretrain)}.png")
+                f"_WithBatch{int(use_physics_batch)}{'' if not pretrain else '_Pretrain'+str(pretrain)}.png")
     filepath = os.path.join(save_dir, filename)
 
     plt.figure(figsize=(10, 6))
