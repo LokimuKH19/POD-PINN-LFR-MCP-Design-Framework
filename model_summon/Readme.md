@@ -240,18 +240,18 @@ Stay tuned for updates in the `WeakForm/` folder, where the lid-driven cavity de
 
 ## 💻 Using the Model
 
-I developed a UI in `UserInterface.py` based on `gradio`. If you don't have it, please enter the console and enter:
+I developed a UI in `UserInterface.py` based on `streamlit`. If you don't have it, please enter the console and enter:
 
 ```cmd
-pip install gradio==5.38.0
+pip install streamlit==5.38.0
 ```
 
 What you can do to analyze the mode are:
 
-- Run `UserInterface.py`;
-- Enter `http://127.0.0.1:7860` in your browser and jump to the UI;
-- `LoadModel` from `Reconstruct` and `ReconstructORI` filefolder;
-- Enter `omega` and `qv` according to the hints and press `submit`;
+- Run `UserInterface.py` by double clicking `view.bat`;
+- Enter [http://26.26.26.1:8501](http://26.26.26.1:8501) in your browser and jump to the UI;
+- Load model from `Reconstruct` and `ReconstructORI` filefolder, as displayed in the left of the window;
+- Enter `omega` and `qv` according to the hints and press `Comput Flow Filed`;
 - Obtain the flow field and other model information in the interface;
-- Save the results through the `flag` button.
+- Save the results automatically.
 
