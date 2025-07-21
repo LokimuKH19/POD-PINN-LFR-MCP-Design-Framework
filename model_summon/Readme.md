@@ -243,7 +243,7 @@ Stay tuned for updates in the `WeakForm/` folder, where the lid-driven cavity de
 I developed a UI in `UserInterface.py` based on `streamlit`. If you don't have it, please enter the console and enter:
 
 ```cmd
-pip install streamlit==5.38.0
+pip install streamlit==1.44.1
 ```
 
 What you can do to analyze the mode are:
