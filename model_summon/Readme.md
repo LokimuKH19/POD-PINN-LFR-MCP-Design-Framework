@@ -371,7 +371,7 @@ While **relative error** is used as a primary metric, it must be interpreted wit
   - In some low-flow-rate conditions, errors can rise to ~40%.
   - Occasionally in off-blade regions — may relate to underrepresented flow dynamics.
 
-> 📉 This best model in the repo was trained using same architecture ([2, 30, 30, 5]) in our paper also **struggle with small-flow-rate predictions**, though they used extrapolation, while this repo uses interpolation to enhance performance on small-flow conditions. It seems that the division of training/testing set has not siginificant influence on the final performance of the model, also causes by PINN's nature.
+> 📉 This best model in the repo was trained using same architecture ([2, 30, 30, 5]) in our paper also **struggle with small-flow-rate predictions**, though they used extrapolation, while this repo uses interpolation to enhance performance on small-flow conditions. It seems that the division of training/testing set has not siginificant influence on the final performance of the model, also caused by PINN's nature.
 
 ---
 
