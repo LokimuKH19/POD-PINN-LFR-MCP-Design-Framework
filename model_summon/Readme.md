@@ -253,3 +253,13 @@ What you can do to analyze the mode are:
 - Load model from `Reconstruct` and `ReconstructORI` filefolder, as displayed in the left of the window;
 - Enter `omega` and `qv` according to the hints and press `Comput Flow Field`;
 - Obtain the flow field and other model information in the interface.
+
+The screenshots for this App:
+
+![screenshot1](./screenshot1.png)
+
+![screenshot2](./screenshot2.png)
+
+### 🏹 The features
+
+
