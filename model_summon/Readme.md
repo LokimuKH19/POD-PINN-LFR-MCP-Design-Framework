@@ -260,6 +260,68 @@ The screenshots for this App:
 
 ![screenshot2](./screenshot2.png)
 
-### 🏹 The features
+### 🔍 Overall Design and Error Analysis Strategy
+
+This UI performs detailed **prediction evaluation** of a surrogate physical model (ROM-PINN or others) against CFD or experimental data. The evaluation consists of two complementary components:
+
+---
+
+### 🧷 Point-to-Point Error Statistics (Local View)
+
+To understand **localized model behavior**, this mode visualizes the **distribution of pointwise relative error**.
+
+Each physical quantity (Pressure, Ur, Ut, Uz) is evaluated using:
+
+- **CDF (Cumulative Distribution Function)**: Plots the proportion of points with error below a certain value.
+- **Error Histogram (Ratio-based)**: Displays error density distribution as a bar chart overlaid on the CDF curve.
+- **Display Cut-off Slider**: Controlled by the user (default 90%), this limits the x-axis of the plots to focus on **majority behavior** while **excluding extreme tails** caused by:
+  - Mesh noise,
+  - CFD data artifacts,
+  - Discretization error from structured-unstructured conversion.
+
+> 🧠 Example: Set the "Error Display Cut-off Percentile" to 5% to **zoom into the most significant 95% of the data**, filtering out the worst outliers (usually <5%).
+
+---
+
+### 🧮 Overall Error Analysis (Global View)
+
+This view provides **global error metrics** to reflect model performance over the entire flow domain. It includes:
+
+- **Area-Weighted Relative Error**: Accounts for irregular sampling point distributions by applying Voronoi-based area weights.
+- **Global Normalization**: Normalization of both predicted and true values uses only `y_true` min/max to ensure stability and physical interpretability.
+- **Masked Small Values**: Regions with negligible values (e.g., velocity near zero) are masked using a threshold (e.g., 0.01) to eliminate noise artifacts.
+
+> 📌 This view helps in judging **how good the model is on average** while avoiding over-reaction to extreme local outliers.
+
+---
+
+### 🧵 Complementary Insight
+
+- While **overall metrics** (like MSE or mean relative error) give a **summary score**, they can be misleading if a small fraction of points have extreme errors.
+- On the other hand, **point-to-point statistics** reveal **error structure** — e.g., whether the model consistently overestimates pressure, or performs better in core flow vs. boundary regions.
+- Thus, these two views **mutually reinforce** the interpretation:
+  - Use global metrics to compare model versions or hyperparameters.
+  - Use pointwise plots to debug physical inconsistencies and spatial generalization.
+> ✨ This evaluation framework is especially useful in scientific ML scenarios where **physical plausibility** and **geometric fidelity** matter as much as raw accuracy.
+---
+
+### ⚙️ Key Techincal Details
+
+| Item                         | Description                                                    |
+|----------------------------------|----------------------------------------------------------------|
+| Error Display Cut-off Percentile of Point-to-Point Error Statistics | Controls how much of the CDF and histogram x-axis is displayed (default: 90%). |
+| Area Weighting when computing the  overall relative error | Internally applies Voronoi area to each point to account for non-uniform mesh distribution. |
+| Normalization process when computing the overall relative error | Applied using true values only, ensuring consistent scale across evaluations. |
+| Value Masking Threshold | Filters values below 0.01 in the overall error, and 0.2m/s in the point-to-point error (the level of the velocity is 1e1 in the dataset) to avoid numerical instability and artifacts. |
+
+---
 
 
+### 📝 Notes
+
+- DO NOT activate `UserInterface.py` directly though python. A UI based on `streamlit` can only be started by cmd command `streamlit run UserInterface.py` at the local directory (as shown in `view.bat`).
+- The UI allows real-time adjustment and visualization — Thanks to Streamlit’s auto-reload, the browser's next action will be constantly following the latest version of `UserInterface.py`.
+- DO NOT refresh the page. Some serious problem related to the index of the dependency files would occur. If that happens you can only stop the view.bat and re-run it.
+
+
+## 
