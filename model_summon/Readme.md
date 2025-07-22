@@ -341,7 +341,7 @@ In [`./Reconstruct/readme.md`](./Reconstruct/readme.md) and [`./ReconstructORI/r
 
 ### 🚀 Inference Efficiency & Practicality
 
-This surrogate model can predict **physical fields (P, Ur, Ut, Uz)** at **7,999 spatial points** almost instantly for any given working condition, representing a **dramatic speed-up compared to traditional CFD simulations**.
+This surrogate model can predict **physical fields (P, Ur, Ut, Uz)** at **7,999 spatial points** almost instantly for any given working condition, representing a **dramatic speed-up compared to traditional CFD simulations** (Training a model=Doing infinite traditional CFD simulations).
 
 Moreover, thanks to the nature of **PINNs**, this model inherently suppresses high-frequency numerical noise found in CFD data by solving the underlying control equations.
 
@@ -371,7 +371,7 @@ While **relative error** is used as a primary metric, it must be interpreted wit
   - In some low-flow-rate conditions, errors can rise to ~40%.
   - Occasionally in off-blade regions — may relate to underrepresented flow dynamics.
 
-> 📉 This best model in the repo was trained using same architecture ([2, 30, 30, 5]) in our paper also **struggle with small-flow-rate predictions**, though they used extrapolation, while this repo uses interpolation to enhance performance on small-flow conditions. It seems that the division of training/testing set has not siginificant influence on the final performance of the model, also caused by PINN's nature.
+> 📉 This best model in the repo was trained using same architecture ([2, 30, 30, 5]) in our paper also **struggle with small-flow-rate predictions**, though they used extrapolation, while this repo uses interpolation to enhance performance on small-flow conditions. It seems that the division of training/testing set has not siginificant influence on the final performance of the model, also caused by PINN's nature. In addition, on the dataset in this repo, the testing loss POD-PINN 1.35 has not absolute advantage comparing to POD-PureNN's 2.20 (at the same level), causing similar performace of each convergenced model. 
 
 ---
 
