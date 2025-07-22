@@ -70,11 +70,10 @@ POD gives **discrete** spatial modes. But PINNs need **continuous gradients** (t
 **Solution?**  
 We used interpolation (nearest neighbor in the paper, not so accurate as we expected when computing $\frac{\partial u}{\partial r}$) to make the modes differentiable. However that means this program has to run on a huge table which records the derivatives from each order of all spatial coordinates in the equation loss function. So in this repository we also tried NNs to be the interpolators, see in the `.\model_summon\Interpolation.py`
 
-### 4. Graphical Abstract
+### 4. Sketch Map of POD-PINN Approach
 ![Graphical Abstract](./model_summon/graphical_abstract.png)
 
-📌For academic presentation only
-
+>📌 This figure is a modified one from the original research paper and is only used for academic communication.
 
 ### 5. 🛠️ Potential Extensions
 Here are some ideas for extending the current work:
