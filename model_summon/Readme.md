@@ -335,7 +335,7 @@ This view provides **global error metrics** to reflect model performance over th
 The "model" discussed in this section refers to the best-performing surrogate:  
 `.ReconstructORI/Checkpoint_SEED42_LR0.01_HD30_HL2_Epoch63_WithPhysics1_WithBatch1_Pretrain50.pth`
 
-In [`.Reconstruct/readme.md`](`.Reconstruct/readme.md`), we already explored its **generalization ability** by examining convergence curves. The synchronized convergence between training and validation underlines the effectiveness of **physics-informed supervision**, which not only regularizes the network but ensures physical consistency.
+In [`./Reconstruct/readme.md`](./Reconstruct/readme.md) and [`./ReconstructORI/readme.md`](./ReconstructORI/readme.md), we already explored its **generalization ability** by examining convergence curves. The synchronized convergence between training and validation underlines the effectiveness of **physics-informed supervision**, which not only regularizes the network but ensures physical consistency.
 
 ---
 
