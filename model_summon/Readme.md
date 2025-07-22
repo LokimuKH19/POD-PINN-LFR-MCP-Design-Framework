@@ -262,7 +262,7 @@ The screenshots for this App:
 
 ### 🔍 Overall Design and Error Analysis Strategy
 
-This UI performs detailed **prediction evaluation** of a surrogate physical model (ROM-PINN or others) against CFD or experimental data. The evaluation consists of two complementary components:
+This UI performs detailed **prediction evaluation** of a surrogate physical model (ROM-PINN or others) against CFD or experimental data. If you entered working conditions in the dataset `EXP.csv`, the following error analysis will be automatically carried out.The evaluation consists of two complementary components:
 
 ---
 
@@ -285,7 +285,7 @@ Each physical quantity (Pressure, Ur, Ut, Uz) is evaluated using:
   - CFD data artifacts,
   - Discretization error from structured-unstructured conversion.
 
-> 🧠 Example: Set the "Error Display Cut-off Percentile" to 5% to **zoom into the most significant 95% of the data**, filtering out the worst outliers (usually <5%).
+> 🧠 Example: Set the "Error Display Cut-off Percentile" to 5% means **zooming into the most significant 95% of the data**, filtering out the worst outliers (usually <5%) to ensure the statistical figures readable.
 
 ---
 
@@ -330,4 +330,53 @@ This view provides **global error metrics** to reflect model performance over th
 - DO NOT refresh the page. Some serious problem related to the index of the dependency files would occur. If that happens you can only stop the view.bat and re-run it.
 
 
-## 
+## 😺 How well does our model perform
+
+The "model" discussed in this section refers to the best-performing surrogate:  
+`.ReconstructORI/Checkpoint_SEED42_LR0.01_HD30_HL2_Epoch63_WithPhysics1_WithBatch1_Pretrain50.pth`
+
+In [`.Reconstruct/readme.md`](`.Reconstruct/readme.md`), we already explored its **generalization ability** by examining convergence curves. The synchronized convergence between training and validation underlines the effectiveness of **physics-informed supervision**, which not only regularizes the network but ensures physical consistency.
+
+---
+
+### 🚀 Inference Efficiency & Practicality
+
+This surrogate model can predict **physical fields (P, Ur, Ut, Uz)** at **7,999 spatial points** almost instantly for any given working condition, representing a **dramatic speed-up compared to traditional CFD simulations**.
+
+Moreover, thanks to the nature of **PINNs**, this model inherently suppresses high-frequency numerical noise found in CFD data by solving the underlying control equations.
+
+---
+
+### 📈 Interpreting the Error
+
+While **relative error** is used as a primary metric, it must be interpreted with caution:
+
+- CFD data itself contains numerical error and mesh-related artifacts.
+- Our model is not just regressing CFD output but solving physical laws.
+- However, **consistently high relative errors still indicate model flaws** or data inadequacies.
+
+---
+
+### ✅ Summary of Model Performance
+
+- Performs best under conditions where **omega ≥ 0.27** (medium to high flow rate).
+- Among the primary quantities of interest in axial pumps:
+  - **Pressure (P)**
+  - **Tangential Velocity (Ut)**
+  - **Axial Velocity (Uz)**  
+  The model maintains **area-weighted relative error mostly under 15%**, rarely exceeding 35%.
+- **Similarity scores** (Pearson correlation) are often above 80%.
+- **Error concentration** tends to appear:
+  - Near blade regions with complex geometry (regardless of training/test split).
+  - In some low-flow-rate conditions, errors can rise to ~40%.
+  - Occasionally in off-blade regions — may relate to underrepresented flow dynamics.
+
+> 📉 This best model in the repo was trained using same architecture ([2, 30, 30, 5]) in our paper also **struggle with small-flow-rate predictions**, though they used extrapolation, while this repo uses interpolation to enhance performance on small-flow conditions. It seems that the division of training/testing set has not siginificant influence on the final performance of the model, also causes by PINN's nature.
+
+---
+
+### 🧠 Explanation
+
+A likely reason for reduced performance in small flow-rate regimes is **insufficient POD modes**. Under low flow conditions, axial pumps exhibit **more complex and unstable flow features**, requiring a **higher number of modes** to accurately reconstruct the true flow field. Actually, using 95% energy propotion to perform order reduction on a highly unlinear system (driven by NS equation) is probably insufficient.
+
+This underscores a key challenge in reduced-order modeling: **balancing compression with expressive fidelity**.
