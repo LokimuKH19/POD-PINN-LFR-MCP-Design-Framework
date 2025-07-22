@@ -27,7 +27,7 @@ Nevertheless, whether using `./model_summon/ReconstructORI.py` (KNN-based modal 
 Okay, we’ll be honest — not perfect. We’re dealing with **very high Reynolds numbers**, and we only used **4 POD modes**. That captured about 95% of the energy, but turns out, 95% isn't enough when the flow gets wild. (Even in some more linears occasions e.g. Only Thermal Conduction Evolved, other researches might used energy propotion more than 99%)
 
 Why the error?  
-- High nonlinearity, few modes = still a trade-off between speed and accuracy (error < 40% in the paper)
+- High nonlinearity, few modes = still a trade-off between speed and accuracy (max error ~35% in the paper)
 - Reynolds numbers are huge → behavior becomes chaotic  
 - The method’s better at catching **flow trends** (correlation > 0.7 in the paper), but struggles with absolute precision
 
@@ -35,7 +35,7 @@ In short: **great for trend detection, not so great for exact numbers**. But hey
 
 ## Wait, the code doesn't match the paper?
 
-Yep. In fact, this repository is an improved research version — with brand-new data, better-performing programs, and, of course, **more sense of humour**. The original paper was based on earlier results — and, well, **conference page limits are brutal**, plus **some of the data is confidential**(possibly appear in my Master Thesis). So, a lot of juicy details had to be left on the cutting room floor. What you see here is the “director’s cut” — a more refined, fleshed-out version.
+Yep. In fact, this repository is an improved research version — with **different pump data**, **better-performing programs**, **more comprehensive testing methods**, **expanded and modular functions**, and, of course, **more sense of humour**. The original paper was based on earlier results — and, well, **conference page limits are brutal**, plus **some of the data is confidential**(possibly appear in my Master Thesis). So, a lot of juicy details had to be left on the cutting room floor. What you see here is the “director’s cut” — a more refined, fleshed-out version.
 
 Funny story: I didn’t even realize neural network results could be kept consistent and reproducible using random seed control until the first peer review of another one of our projects. Before that, I was a complete noob in CS & AI and had no clue what a random seed even meant. That little revelation is actually how the [DRQI](https://github.com/LokimuKH19/DRQI) repo was born. I am still trying to get involved because I constantly think being an CS/AI researcher is cool, but before that I must manage to improve my functional analysis skill, to dive deeper into the model structure.
 
@@ -109,3 +109,13 @@ It’s a work-in-progress. It **needs way less data** (yay!) but the accuracy? S
 Call it an *unsuccessful attempt at being efficient*, but hey — at least it's a step.
 
 Stay curious. Stay skeptical. And always double-check what the Raynolds number(lol). Enjoy the code in `model_summon` filefolder.
+
+## 🖊 Write at the end -- Some thoughts
+
+When I started the repo of [DRQI](https://github.com/LokimuKH19/DRQI), I first realized that an open-source platform lets me keep updating ideas anytime — unlike papers that get fixed once published. So this repo is not just about the POD-PINN project but also a place where I’ll try out all kinds of AI algorithm stuff, even if it’s not directly related to my main field. Also, I hope I can provide a PINN developing framework which is easy to use to my colleagues from engineering fields in need.
+
+Organizing code, tuning the models, designing the experiments and making the UI have been both tough and fun — lots of trial and error, but that’s how you learn and improve.
+
+Big thanks to the Nureth-21 conference for the inspiration and great discussions. Also, learning Korean along the way has been surprisingly fun.
+
+If you find this repo useful, feel free to give it a star — it really means a lot!
