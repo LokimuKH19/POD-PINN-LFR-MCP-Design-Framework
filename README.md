@@ -2,7 +2,7 @@
 
 ## What's this thing even for?
 
-This repo is for predicting the flow field of a **lead-cooled fast reactor main pump** under different operating conditions — quickly. Like, way faster than rerunning CFD every single time. The idea is: get the trends, save your time, and maybe (just maybe) shorten the design loop in the early stages.
+This repo is for predicting the flow field of a **lead-cooled fast reactor main pump** under different operating conditions — quickly. Like, way faster than rerunning CFD every single time. The idea is: get the trends, save your time, and maybe shorten the design loop in the early stages.
 
 
 ### ✅ Why POD-PINN?
