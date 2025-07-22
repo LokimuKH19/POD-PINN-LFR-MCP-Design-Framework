@@ -6,7 +6,7 @@ In this folder, you’ll find the raw CFD data used for POD decomposition.
 
 ### 🧾 Files Dependency
 
-- `coordinates.csv`  
+- `coordinate.csv`  
   Contains the **polar coordinates** (`r`, `θ`, `z`) of all sampling points. These are taken from a thin cylindrical slice at `span = 0.65`, so the `r` values barely change — the variation mainly lies in `θ` (circumferential) and `z` (axial). [We haven't unlock the technology for performing SVD on a very large scale matrix, thus we only focus on several key spans which can represent the flow characteristics within the pump.]
 
 - `P.csv`, `Ur.csv`, `Ut.csv`, `Uz.csv`  
@@ -15,7 +15,7 @@ In this folder, you’ll find the raw CFD data used for POD decomposition.
   - `Ur.csv` — Radial velocity  
   - `Ut.csv` — Tangential velocity  
   - `Uz.csv` — Axial velocity
-    Each **column** represents a specific operating condition (we have 27 total, as shown in `EXP.csv`), and each **row** corresponds to a coordinate point from `coordinates.csv`.
+    Each **column** represents a specific operating condition (we have 27 total, as shown in `EXP.csv`), and each **row** corresponds to a coordinate point from `coordinate.csv`.
 
 - `EXP.csv`
   Contains the operating conditions of the pump, each row represents a CFD result with different rotating speed $\omega$ (rpm) and outlet volumn flow rate $q_v$ (m3/s). The third column `test` refers to whether this result belongs to the testing set or not.
@@ -240,7 +240,7 @@ Stay tuned for updates in the `WeakForm/` folder, where the lid-driven cavity de
 
 ## 💻 Using the Model
 
-I developed a UI in `UserInterface.py` based on `streamlit`. If you don't have it, please enter the console and enter:
+I developed a UI in `UserInterface.py` based on `streamlit`. If you don't have it on your device, please enter the cmd console and enter:
 
 ```cmd
 pip install streamlit==1.44.1
@@ -266,7 +266,13 @@ This UI performs detailed **prediction evaluation** of a surrogate physical mode
 
 ---
 
-### 🧷 Point-to-Point Error Statistics (Local View)
+### 🧷 Point-to-Point Error Distribution (Local View)
+
+The raw relative error of the predicted physical quantity (Pressure and the 3 velocities Ur, Ut, Uz) is calculated point-by-point in `coordinate.csv` and then displayed, to show the spatial error distribution directly.
+
+---
+
+### 🧷 Point-to-Point Error Statistics (Detialed View)
 
 To understand **localized model behavior**, this mode visualizes the **distribution of pointwise relative error**.
 
