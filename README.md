@@ -1,5 +1,7 @@
 # 🌀 POD-PINN Based Main Pump Flow Field Predictor
 
+> We welcome contributors from thermal-hydraulics, numerical methods, and AI modeling backgrounds—open to discussions and collaborations.
+
 ## What's this thing even for?
 
 This repo is for predicting the flow field of a **lead-cooled fast reactor main pump** under different operating conditions — quickly. Like, way faster than rerunning CFD every single time. The idea is: get the trends, save your time, and maybe shorten the design loop in the early stages.
