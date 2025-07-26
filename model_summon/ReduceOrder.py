@@ -14,7 +14,7 @@ def pod_decomposition(input_file, modes_output_file, coeff_output_file, eigvals_
     print("Data_Mean_Shape: ", data_mean.shape)
     data_centered = data - data_mean[:, np.newaxis]  # Center the data by subtracting the mean
 
-    # 3. Compute the covariance matrix
+    # 3. Compute the covariance matrix (SVD = EVD the covariance matrix, the eigenvalue is the square of singular value)
     cov_matrix = np.cov(data_centered, rowvar=False)
 
     # 4. Perform eigenvalue decomposition
@@ -56,6 +56,7 @@ def pod_decomposition(input_file, modes_output_file, coeff_output_file, eigvals_
     print(f"Eigenvalues saved to {eigvals_output_file}")
 
     # 12. Calculate the energy contribution of each mode (eigenvalue / total eigenvalues sum)
+    # Eigenvalues are squared singular value, don't square them again!!!
     total_energy = np.sum(selected_eigvals)
     energy_percentages = (selected_eigvals / total_energy) * 100
 
