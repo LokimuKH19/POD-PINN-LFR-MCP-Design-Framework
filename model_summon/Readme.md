@@ -377,6 +377,6 @@ While **relative error** is used as a primary metric, it must be interpreted wit
 
 ### 🧠 Explanation
 
-A likely reason for reduced performance in small flow-rate regimes is **insufficient POD modes**. Under low flow conditions, axial pumps exhibit **more complex and unstable flow features**, requiring a **higher number of modes** to accurately reconstruct the true flow field. Actually, using 95% energy propotion to perform order reduction on a highly unlinear system (driven by NS equation) is probably insufficient.
+A likely reason for reduced performance in small flow-rate regimes is **insufficient POD modes**. Under low flow conditions, axial pumps exhibit **more complex and unstable flow features**, requiring a **higher number of modes** to accurately reconstruct the true flow field. Actually, using 95% energy propotion to perform order reduction on a highly unlinear system (driven by NS equation) is probably insufficient. When the flow rate is relatively low, the dead zone may possibly occur within the near-blade region, leading to the low velocity magnitude (~0m/s). In this occasion the relative error becomes inappropriate due to divided by zero.
 
 This underscores a key challenge in reduced-order modeling: **balancing compression with expressive fidelity**.
