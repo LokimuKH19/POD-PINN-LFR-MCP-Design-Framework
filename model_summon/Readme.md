@@ -299,6 +299,8 @@ This view provides **global error metrics** to reflect model performance over th
 
 > 📌 This view helps in judging **how good the model is on average** while avoiding over-reaction to extreme local outliers.
 
+Additionally, pearson correlation coefficients of **data in original values (raw data without any preprocessing)** has been applied, in order to show the overall similarities between the models' predicted and CFD flowfield.
+
 ---
 
 ### 🧵 Complementary Insight
