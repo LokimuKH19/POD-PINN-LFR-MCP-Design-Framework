@@ -236,7 +236,7 @@ In that simplified setting, we can define a full domain and boundary conditions,
 
 - Compare the performance and flexibility with strong-form PINNs
 
-Stay tuned for updates in the `WeakForm/` folder, where the lid-driven cavity demo will be later included. This supplementary example will serve as a reference for those interested in more advanced PINN formulations — especially those that blend well with traditional numerical schemes like Galerkin FEM.
+Stay tuned for updates in the `../WeakForm/` folder, where the lid-driven cavity demo will be later included. This supplementary example will serve as a reference for those interested in more advanced PINN formulations — especially those that blend well with traditional numerical schemes like Galerkin FEM.
 
 ## 💻 Using the Model
 
