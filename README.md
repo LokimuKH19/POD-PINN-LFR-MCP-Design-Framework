@@ -1,6 +1,10 @@
 # 🌀 POD-PINN Based Main Pump Flow Field Predictor
 
+> This Repo is related to NURETH-21 Paper 1193.
+
 > We welcome contributors from thermal-hydraulics, numerical methods, and AI modeling backgrounds—open to discussions and collaborations.
+
+> If you like it plz star it⭐
 
 ## What's this thing even for?
 
