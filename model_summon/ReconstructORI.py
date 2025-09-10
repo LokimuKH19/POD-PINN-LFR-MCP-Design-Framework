@@ -10,6 +10,7 @@ import os
 import matplotlib.pyplot as plt
 
 
+
 class PINNSystem:
     def __init__(self, hidden_dim=64, hidden_layers=2, lr=1e-3, use_physics_loss=True, use_physics_batch=False):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -49,7 +50,7 @@ class PINNSystem:
         self.mean_stats = {}
 
         for name in ['P', 'Ut', 'Ur', 'Uz']:
-            coeff = pd.read_csv(f"./ReducedResults/coefficients_{name}.csv").iloc[:, :4].values
+            coeff = pd.read_csv(f"./ReducedResults/coefficients_{name}.csv").iloc[:, :MODES].values
             mean = pd.read_csv(f"./ReducedResults/mean_{name}.csv").values.squeeze()
 
             coeff_torch = torch.tensor(coeff, dtype=torch.float32)
@@ -81,7 +82,7 @@ class PINNSystem:
             layers = [nn.Linear(2, self.hidden_dim), nn.Tanh()]
             for _ in range(self.hidden_layers - 1):
                 layers += [nn.Linear(self.hidden_dim, self.hidden_dim), nn.Tanh()]
-            layers += [nn.Linear(self.hidden_dim, 5)]
+            layers += [nn.Linear(self.hidden_dim, MODES+1)]
             return nn.Sequential(*layers).to(self.device)
 
         self.net_P = make_net()
@@ -93,7 +94,9 @@ class PINNSystem:
         self.interp = {
             name: SmoothKNNInterpolator(
                 coord_path='./coordinate.csv',
-                mode_path=f'./ReducedResults/modes_{name}.csv'
+                mode_path=f'./ReducedResults/modes_{name}.csv',
+                modes=MODES,
+                k=3,
             ) for name in ['P', 'Ut', 'Ur', 'Uz']
         }
 
@@ -139,19 +142,20 @@ class PINNSystem:
         with context():
             for name, net in zip(['P', 'Ut', 'Ur', 'Uz'],
                                  [self.net_P, self.net_Ut, self.net_Ur, self.net_Uz]):
-                pred = net(cond)  # (1, 5)
-                coeffs_norm = pred[:, :4]  # (1, 4)
-                mean_norm = pred[:, 4]  # (1,)
+                pred = net(cond)  # (1, MODES+1)
+                coeffs_norm = pred[:, :MODES]  # (1, MODES)
+                mean_norm = pred[:, MODES]  # (1,)
 
                 coeff_mean, coeff_std = self.coeffs_stats[name]
                 mean_mean, mean_std = self.mean_stats[name]
 
-                coeffs = coeffs_norm * coeff_std + coeff_mean  # (1, 4)
+                coeffs = coeffs_norm * coeff_std + coeff_mean  # (1, MODES)
                 mean = mean_norm * mean_std + mean_mean  # (1,)
 
-                mode_values = self.interp[name](coords)  # (M, 4)
-                field = torch.matmul(mode_values, coeffs.T).squeeze(-1) + mean.item()  # (M,)
+                mode_values = self.interp[name](coords)  # (M, MODES)
+                field = torch.matmul(mode_values, coeffs.T).squeeze(-1) + mean.item()
                 fields[name] = field
+
         return fields
 
     def compute_data_loss(self):
@@ -161,9 +165,9 @@ class PINNSystem:
 
         for name, net in zip(['P', 'Ut', 'Ur', 'Uz'],
                              [self.net_P, self.net_Ut, self.net_Ur, self.net_Uz]):
-            pred = net(self.conditions)         # (N, 5)
-            coeff_pred = pred[:, :4]
-            mean_pred = pred[:, 4]
+            pred = net(self.conditions)         # (N, MODES+1)
+            coeff_pred = pred[:, :MODES]
+            mean_pred = pred[:, MODES]
 
             coeff_true = self.coeffs_target[name]
             mean_true = self.mean_target[name]
@@ -434,7 +438,7 @@ def save_loss_curve(train_loss, test_loss, SEED, learning_rate, hidden_dim,
 
     filename = (f"Losscurve_SEED{SEED}_LR{learning_rate}_HD{hidden_dim}_"
                 f"HL{hidden_layers}_Epoch{epochs}_WithPhysics{int(use_physics_loss)}"
-                f"_WithBatch{int(use_physics_batch)}{'' if not pretrain else '_Pretrain'+str(pretrain)}.png")
+                f"_WithBatch{int(use_physics_batch)}{'' if pretrain else '_Pretrain'+str(pretrain)}.png")
     filepath = os.path.join(save_dir, filename)
 
     plt.figure(figsize=(10, 6))
@@ -530,8 +534,9 @@ def train_PINN(system: PINNSystem, epochs: int = 9999, coord_batch_size: int = 6
 # ======== Main Entry, Train Your Model Here ========
 if __name__ == "__main__":
     # random seed
-    global SEED
+    global SEED, MODES
     SEED = 42
+    MODES = 8
     set_seed(SEED)
     # Hyper Parameters
     hidden_dim = 30
@@ -574,9 +579,9 @@ if __name__ == "__main__":
     )
     try:
         if not pretrain_epochs:
-            pinn = load_checkpoint(checkpoint_path+f"/Checkpoint_SEED{SEED}_LR{learning_rate}_HD{hidden_dim}_HL{hidden_layers}_Epoch{epochs}_WithPhysics{int(use_physics_loss)}_WithBatch{(int(use_physics_batch))}.pth")
+            pinn = load_checkpoint(checkpoint_path+f"/Checkpoint_SEED{SEED}_LR{learning_rate}_HD{hidden_dim}_HL{hidden_layers}_Epoch{epochs}_WithPhysics{int(use_physics_loss)}_WithBatch{(int(use_physics_batch))}_MODES{MODES}.pth")
         else:
-            pinn = load_checkpoint(checkpoint_path+f"/Checkpoint_SEED{SEED}_LR{learning_rate}_HD{hidden_dim}_HL{hidden_layers}_Epoch{epochs}_WithPhysics{int(use_physics_loss)}_WithBatch{(int(use_physics_batch))}_Pretrain{pretrain_epochs}.pth")
+            pinn = load_checkpoint(checkpoint_path+f"/Checkpoint_SEED{SEED}_LR{learning_rate}_HD{hidden_dim}_HL{hidden_layers}_Epoch{epochs}_WithPhysics{int(use_physics_loss)}_WithBatch{(int(use_physics_batch))}_Pretrain{pretrain_epochs}_MODES{MODES}.pth")
         example_coords = torch.tensor([[0.146384, 0.044788, -0.098216]], dtype=torch.float32)
         condition = torch.tensor([630, 0.65])
         result = pinn(example_coords, condition)

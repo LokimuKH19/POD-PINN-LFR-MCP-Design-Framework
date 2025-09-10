@@ -5,10 +5,10 @@ import time
 
 
 class SmoothKNNInterpolator:
-    def __init__(self, coord_path: str, mode_path: str, k: int = 20):
+    def __init__(self, coord_path: str, mode_path: str, k: int = 20, modes: int = 8):
         # Load coordinates and modes
         coords = pd.read_csv(coord_path, header=None).values  # shape: (N, 3)
-        modes = pd.read_csv(mode_path).iloc[:, :4].values     # shape: (N, 4)
+        modes = pd.read_csv(mode_path).iloc[:, :modes].values     # shape: (N, 4)
 
         self.X = torch.tensor(coords, dtype=torch.float32)    # (N, 3)
         self.Y = torch.tensor(modes, dtype=torch.float32)     # (N, 4)
@@ -32,14 +32,19 @@ class SmoothKNNInterpolator:
         x: (B, 3)
         Return: (B, 4)
         """
+        X = self.X.to(x.device)
+        Y = self.Y.to(x.device)
+
         x_expanded = x.unsqueeze(1)  # (B, 1, 3)
-        dists = torch.norm(self.X.unsqueeze(0) - x_expanded, dim=2)  # (B, N)
+        dists = torch.norm(X.unsqueeze(0) - x_expanded, dim=2)  # (B, N)
+
         # Find k nearest neighbors
         knn_dists, knn_idx = torch.topk(dists, self.k, dim=1, largest=False)  # (B, k)
-        # Gather neighbor coordinates and values
-        knn_values = self.Y[knn_idx]     # (B, k, 4)
+        knn_values = Y[knn_idx]  # (B, k, 4)
+
         # Compute soft weights
         weights = self._smooth_weights(knn_dists)  # (B, k)
+
         # Weighted sum
         interpolated = torch.sum(weights.unsqueeze(-1) * knn_values, dim=1)  # (B, 4)
         return interpolated
