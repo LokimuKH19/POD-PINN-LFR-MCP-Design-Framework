@@ -115,8 +115,10 @@ Call it an *unsuccessful attempt at being efficient*, but hey — at least it's 
 
 Stay curious. Stay skeptical. And always double-check what the Raynolds number(lol). Enjoy the code in `model_summon` filefolder.
 
-## Update Records
-- Sept.10 2025: Arbitary modal numbers could be applied in `model_summon/ReconstructORI.py` now.
+## 🆙 Update Records
+### Sept.10 2025: 
+- Arbitary modal numbers could be applied in `model_summon/ReconstructORI.py` now.
+- Models could be loaded for continue to train in `model_summon/ReconstructORI.py` now.
 
 ## 🖊 Write at the end -- Some thoughts
 
