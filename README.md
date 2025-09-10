@@ -115,6 +115,9 @@ Call it an *unsuccessful attempt at being efficient*, but hey — at least it's 
 
 Stay curious. Stay skeptical. And always double-check what the Raynolds number(lol). Enjoy the code in `model_summon` filefolder.
 
+## Update Records
+- Sept.10 2025: Arbitary modal numbers could be applied in `model_summon/ReconstructORI.py` now.
+
 ## 🖊 Write at the end -- Some thoughts
 
 When I started the repo of [DRQI](https://github.com/LokimuKH19/DRQI), I first realized that an open-source platform lets me keep updating ideas anytime — unlike papers that get fixed once published. So this repo is not just about the POD-PINN project but also a place where I’ll try out all kinds of AI algorithm stuff, even if it’s not directly related to my main field. Also, I hope I can provide a PINN developing framework which is easy to use to my colleagues from engineering fields in need.
