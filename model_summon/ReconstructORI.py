@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 
 class PINNSystem:
-    def __init__(self, hidden_dim=64, hidden_layers=2, lr=1e-3, use_physics_loss=True, use_physics_batch=False):
+    def __init__(self, hidden_dim=64, hidden_layers=2, lr=1e-3, use_physics_loss=True, use_physics_batch=False, modes=4):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(f"[INFO] Using device: {self.device}")
         self.use_physics_loss_original = use_physics_loss
@@ -23,6 +23,7 @@ class PINNSystem:
         self.lr = lr
         self.epoch = 0
         self.pretrain_epoch = 0
+        self.modes = modes
         # ===== 1. Load input and normalize =====
         data = pd.read_csv('./EXP.csv')
         omega = torch.tensor(data['omega'].values, dtype=torch.float32)
@@ -50,7 +51,7 @@ class PINNSystem:
         self.mean_stats = {}
 
         for name in ['P', 'Ut', 'Ur', 'Uz']:
-            coeff = pd.read_csv(f"./ReducedResults/coefficients_{name}.csv").iloc[:, :MODES].values
+            coeff = pd.read_csv(f"./ReducedResults/coefficients_{name}.csv").iloc[:, :self.modes].values
             mean = pd.read_csv(f"./ReducedResults/mean_{name}.csv").values.squeeze()
 
             coeff_torch = torch.tensor(coeff, dtype=torch.float32)
@@ -82,7 +83,7 @@ class PINNSystem:
             layers = [nn.Linear(2, self.hidden_dim), nn.Tanh()]
             for _ in range(self.hidden_layers - 1):
                 layers += [nn.Linear(self.hidden_dim, self.hidden_dim), nn.Tanh()]
-            layers += [nn.Linear(self.hidden_dim, MODES+1)]
+            layers += [nn.Linear(self.hidden_dim, self.modes+1)]
             return nn.Sequential(*layers).to(self.device)
 
         self.net_P = make_net()
@@ -95,7 +96,7 @@ class PINNSystem:
             name: SmoothKNNInterpolator(
                 coord_path='./coordinate.csv',
                 mode_path=f'./ReducedResults/modes_{name}.csv',
-                modes=MODES,
+                modes=self.modes,
                 k=3,
             ) for name in ['P', 'Ut', 'Ur', 'Uz']
         }
@@ -142,17 +143,17 @@ class PINNSystem:
         with context():
             for name, net in zip(['P', 'Ut', 'Ur', 'Uz'],
                                  [self.net_P, self.net_Ut, self.net_Ur, self.net_Uz]):
-                pred = net(cond)  # (1, MODES+1)
-                coeffs_norm = pred[:, :MODES]  # (1, MODES)
-                mean_norm = pred[:, MODES]  # (1,)
+                pred = net(cond)  # (1, self.modes+1)
+                coeffs_norm = pred[:, :self.modes]  # (1, self.modes)
+                mean_norm = pred[:, self.modes]  # (1,)
 
                 coeff_mean, coeff_std = self.coeffs_stats[name]
                 mean_mean, mean_std = self.mean_stats[name]
 
-                coeffs = coeffs_norm * coeff_std + coeff_mean  # (1, MODES)
+                coeffs = coeffs_norm * coeff_std + coeff_mean  # (1, self.modes)
                 mean = mean_norm * mean_std + mean_mean  # (1,)
 
-                mode_values = self.interp[name](coords)  # (M, MODES)
+                mode_values = self.interp[name](coords)  # (M, self.modes)
                 field = torch.matmul(mode_values, coeffs.T).squeeze(-1) + mean.item()
                 fields[name] = field
 
@@ -165,9 +166,9 @@ class PINNSystem:
 
         for name, net in zip(['P', 'Ut', 'Ur', 'Uz'],
                              [self.net_P, self.net_Ut, self.net_Ur, self.net_Uz]):
-            pred = net(self.conditions)         # (N, MODES+1)
-            coeff_pred = pred[:, :MODES]
-            mean_pred = pred[:, MODES]
+            pred = net(self.conditions)         # (N, self.modes+1)
+            coeff_pred = pred[:, :self.modes]
+            mean_pred = pred[:, self.modes]
 
             coeff_true = self.coeffs_target[name]
             mean_true = self.mean_target[name]
@@ -407,7 +408,8 @@ def load_checkpoint(path: str):
         hidden_layers=hidden_layers,
         lr=lr,
         use_physics_loss=use_physics_loss,
-        use_physics_batch=use_physics_batch
+        use_physics_batch=use_physics_batch,
+        modes=len(checkpoint['coeffs_stats']['P'][0]),
     )
 
     # ===== LoadParas =====
@@ -532,11 +534,11 @@ def train_PINN(system: PINNSystem, epochs: int = 9999, coord_batch_size: int = 6
 
 
 # ======== Main Entry, Train Your Model Here ========
+MODES = 8
+
 if __name__ == "__main__":
     # random seed
-    global SEED, MODES
     SEED = 42
-    MODES = 8
     set_seed(SEED)
     # Hyper Parameters
     hidden_dim = 30
@@ -555,6 +557,7 @@ if __name__ == "__main__":
         use_physics_loss=use_physics_loss,
         lr=learning_rate,
         use_physics_batch=use_physics_batch,
+        modes=MODES,
     )
 
     # ===== Load Checkpoint if Exists =====
@@ -579,16 +582,12 @@ if __name__ == "__main__":
     )
     try:
         if not pretrain_epochs:
-            pinn = load_checkpoint(checkpoint_path+f"/Checkpoint_SEED{SEED}_LR{learning_rate}_HD{hidden_dim}_HL{hidden_layers}_Epoch{epochs}_WithPhysics{int(use_physics_loss)}_WithBatch{(int(use_physics_batch))}_MODES{MODES}.pth")
+            pinn = load_checkpoint(checkpoint_path+f"/Checkpoint_SEED{SEED}_LR{learning_rate}_HD{hidden_dim}_HL{hidden_layers}_Epoch{epochs}_WithPhysics{int(use_physics_loss)}_WithBatch{(int(use_physics_batch))}.pth")
         else:
-            pinn = load_checkpoint(checkpoint_path+f"/Checkpoint_SEED{SEED}_LR{learning_rate}_HD{hidden_dim}_HL{hidden_layers}_Epoch{epochs}_WithPhysics{int(use_physics_loss)}_WithBatch{(int(use_physics_batch))}_Pretrain{pretrain_epochs}_MODES{MODES}.pth")
+            pinn = load_checkpoint(checkpoint_path+f"/Checkpoint_SEED{SEED}_LR{learning_rate}_HD{hidden_dim}_HL{hidden_layers}_Epoch{epochs}_WithPhysics{int(use_physics_loss)}_WithBatch{(int(use_physics_batch))}_Pretrain{pretrain_epochs}.pth")
         example_coords = torch.tensor([[0.146384, 0.044788, -0.098216]], dtype=torch.float32)
         condition = torch.tensor([630, 0.65])
         result = pinn(example_coords, condition)
         print("\n[Prediction] Loaded model prediction:", result)
     except FileNotFoundError:
         print("[WARNING] ⚠️ No checkpoint found. Training from scratch.")
-
-
-
-

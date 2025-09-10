@@ -8,6 +8,7 @@ import numpy as np
 from Reconstruct import load_checkpoint, PINNSystem
 from ReconstructORI import load_checkpoint as load_checkpoint_ori
 from ReconstructORI import PINNSystem as PINNSystemORI
+from ReconstructORI import MODES
 import glob
 import os
 from scipy.spatial import Voronoi
@@ -92,6 +93,7 @@ def load_model(file_path):
     try:
         # Determine model type
         if "ReconstructORI" in file_path:
+
             model = load_checkpoint_ori(file_path)
             model_type = "ReconstructORI"
         else:
@@ -137,7 +139,7 @@ def load_model(file_path):
         loss_file = loss_file.replace(f"_Epoch{params['Epoch']}",
                                       f"_Epoch{params['Epoch'] + params['Pretrain']}")
         loss_path = os.path.join(os.path.dirname(file_path), loss_file)
-
+        print(loss_path)
         return model, model_type, params_to_display, loss_path
 
     except Exception as e:
@@ -470,7 +472,7 @@ if st.button("Compute Flow Field") and st.session_state.model:
             wr_Uz = weighted_relative_error(Uz_pred, Uz_exp)
 
             metrics_df = pd.DataFrame({
-                "Metric": ["Pressure", "Radial Velocity (~0, Not important in an Axial Pump)", "Tangential Velocity", "Axial Velocity"],
+                "Metric": ["Pressure", "Radial Velocity", "Tangential Velocity", "Axial Velocity"],
                 "Correlation Coefficient": [f"{coeff_P:.3%}", f"{coeff_Ur:.3%}", f"{coeff_Ut:.3%}", f"{coeff_Uz:.3%}"],
                 "Relative Error (Weighted According to Area)": [f"{wr_P:.3%}", f"{wr_Ur:.3%}", f"{wr_Ut:.3%}", f"{wr_Uz:.3%}"]
             })
