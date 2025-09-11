@@ -45,6 +45,8 @@ Yep. In fact, this repository is an improved research version — with **differe
 
 Funny story: I didn’t even realize neural network results could be kept consistent and reproducible using random seed control until the first peer review of another one of our projects. Before that, I was a complete noob in CS & AI and had no clue what a random seed even meant. That little revelation is actually how the [DRQI](https://github.com/LokimuKH19/DRQI) repo was born. I am still trying to get involved because I constantly think being an CS/AI researcher is cool, but before that I must manage to improve my functional analysis skill, to dive deeper into the model structure.
 
+> Sept. 11, 2025: A new work is planned based on this updated code!
+
 ---
 
 ## How does it work?
