@@ -1,6 +1,6 @@
 # 🌀 POD-PINN Based Main Pump Flow Field Predictor
 
-> This Repo is related to NURETH-21 Paper 1193's PRESENTATION and a coming work (see in the `DLC` folder) related to this repository. 
+> This Repo is related to NURETH-21 Paper 1193's PRESENTATION and a coming work planned to submit to ANE related to this repository. 
 
 > We welcome contributors from thermal-hydraulics, numerical methods, and AI modeling backgrounds—open to discussions and collaborations.
 
@@ -45,7 +45,7 @@ Yep. In fact, this repository is an improved research version — with **differe
 
 Funny story: I didn’t even realize neural network results could be kept consistent and reproducible using random seed control until the first peer review of another one of our projects. Before that, I was a complete noob in CS & AI and had no clue what a random seed even meant. That little revelation is actually how the [DRQI](https://github.com/LokimuKH19/DRQI) repo was born. I am still trying to get involved because I constantly think being an CS/AI researcher is cool, but before that I must manage to improve my functional analysis skill, to dive deeper into the model structure.
 
-> Sept. 11, 2025: A new work is planned based on this updated code!
+> Sept. 11, 2025: A new work is planned based on this updated code! New model with 8 orders of POD modes was built up in the `DLC` Folder.
 
 ---
 
