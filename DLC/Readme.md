@@ -6,5 +6,7 @@
 
 ## POD-PINN
 In this work, the reduced subspace is constructed via SVD-based proper orthogonal decomposition (POD), and the modal coefficients are regressed by a physics-informed neural network (PINN).
+
 Unlike the traditional Galerkin-projected POD-ROM that explicitly constructs low-dimensional governing equations, the present approach uses the physics constraints as a weak regularization to guide the data-driven regression process, thereby ensuring physical consistency while maintaining numerical robustness in complex geometries.
+
 Although this approach departs from the strict Galerkin formulation, it aligns with the recent trend of hybrid data–physics reduced-order modeling that trades exact projection for robustness and generalizability in realistic CFD applications.
