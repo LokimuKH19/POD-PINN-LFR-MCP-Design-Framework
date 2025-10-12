@@ -10,3 +10,10 @@ In this work, the reduced subspace is constructed via SVD-based proper orthogona
 Unlike the traditional Galerkin-projected POD-ROM that explicitly constructs low-dimensional governing equations, the present approach uses the physics constraints as a weak regularization to guide the data-driven regression process, thereby ensuring physical consistency while maintaining numerical robustness in complex geometries.
 
 Although this approach departs from the strict Galerkin formulation, it aligns with the recent trend of hybrid data–physics reduced-order modeling that trades exact projection for robustness and generalizability in realistic CFD applications.
+
+## A Pure MLP
+
+## DeepONet
+
+## Multi-input PINN
+This model was proposed in my Chinese paper "", which can be seen as a variant of the DeepONet. I wish to change the trunk network into an FNO or something with better capability for solving PDEs in this paper.
