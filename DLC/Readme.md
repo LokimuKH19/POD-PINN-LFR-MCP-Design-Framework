@@ -1,4 +1,4 @@
-> To deploy the models, just copy all the `.pth` and `.png` files to the `.../model_summon/ReconstructORI` and activate `view.bat`.
+> To deploy the models, ensure to activate the `view.bat` in THIS FOLDER (temporarily unavailable)
 
 # Attemps to Make the Model Perform Better at Low Flow Rate Conditions
 
@@ -10,6 +10,18 @@ In this work, the reduced subspace is constructed via SVD-based proper orthogona
 Unlike the traditional Galerkin-projected POD-ROM that explicitly constructs low-dimensional governing equations, the present approach uses the physics constraints as a weak regularization to guide the data-driven regression process, thereby ensuring physical consistency while maintaining numerical robustness in complex geometries.
 
 Although this approach departs from the strict Galerkin formulation, it aligns with the recent trend of hybrid data–physics reduced-order modeling that trades exact projection for robustness and generalizability in realistic CFD applications.
+
+### Update on Oct. 23, 2025
+Several Improvemment has been applied to the POD-PINN model, we added the normalization into the physical losses, therefore the scaling factor of the model can be removed:
+
+```python
+        # Using the normalized Phy_loss
+        FC = (FC-torch.min(FC))/(torch.max(FC)-torch.min(FC))
+        FR = (FR-torch.min(FR))/(torch.max(FR)-torch.min(FR))
+        FTH = (FTH-torch.min(FTH))/(torch.max(FTH)-torch.min(FTH))
+        FZ = (FZ-torch.min(FZ))/(torch.max(FZ)-torch.min(FZ))
+```
+Consequently, the monitor of the physical loss is also updated.
 
 # Reduced Order Modeling is not suitable enough for the problems with high non-linearity
 
