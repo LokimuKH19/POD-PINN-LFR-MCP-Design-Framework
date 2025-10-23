@@ -13,6 +13,12 @@ Unlike the traditional Galerkin-projected POD-ROM that explicitly constructs low
 
 Although this approach departs from the strict Galerkin formulation, it aligns with the recent trend of hybrid data–physics reduced-order modeling that trades exact projection for robustness and generalizability in realistic CFD applications.
 
+## Core Features
+- `ReduceOrder.py`: Perform SVD-POD to the dataset, find the common, dominant modes of the flow field in the form of discrete vectors;
+- `InterpolatorORI.py`: Modes interpolation, turn the discrete eigenvectors into a $\phi(x)$, by doing so we can apply loss functions with spatial derivatives;
+- `ReconstructORI.py`: PINN training, generate $\script{N}(\beta;\theta)=a_i(\beta)$;
+- `./ReducedResults`: where the modes are stored.
+
 ### Update on Oct. 23, 2025
 Several Improvemment has been applied to the POD-PINN model, we added the normalization into the physical losses, therefore the scaling factor of the model can be removed:
 
