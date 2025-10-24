@@ -16,7 +16,7 @@ Although this approach departs from the strict Galerkin formulation, it aligns w
 ## Core Features
 - `ReduceOrder.py`: Perform SVD-POD to the dataset, find the common, dominant modes of the flow field in the form of discrete vectors;
 - `InterpolatorORI.py`: Modes interpolation, turn the discrete eigenvectors into a $\phi(x)$, by doing so we can apply loss functions with spatial derivatives;
-- `ReconstructORI.py`: PINN training, generate $\mathcal{N}(\beta;\theta)=a_i(\beta)$;
+- `ReconstructORI.py`: PINN training, to generate $\mathcal{N}(\beta;\theta)=a_i(\beta)$;
 - `./ReducedResults`: where the modes are stored;
 - `coordinates.csv`: the coordinates of the 0.5 span zone;
 - `EXP.csv`: the dataset division;
