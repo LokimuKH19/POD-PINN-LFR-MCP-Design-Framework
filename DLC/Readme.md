@@ -2,7 +2,7 @@
 
 > To deploy the models, ensure to activate the `view.bat` in THIS FOLDER (temporarily unavailable)
 
-> The previous attempts on other pump design and physical properties, see in [here](../model_summon/) for more technical details
+> The previous attempts on other pump design, see in [here](../model_summon/) for more technical details
 
 # Attemps to Make the Model Perform Better at Low Flow Rate Conditions
 
