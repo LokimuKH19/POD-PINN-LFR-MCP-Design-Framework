@@ -10,9 +10,9 @@ def pod_decomposition(input_file, modes_output_file, coeff_output_file, eigvals_
     print("Data loaded. Shape:", data.shape)
 
     # 2. Calculate the mean of the data and center the data
-    data_mean = np.mean(data, axis=1)  # Calculate the mean for each row
+    data_mean = np.mean(data, axis=0)  # Calculate the mean for each column
     print("Data_Mean_Shape: ", data_mean.shape)
-    data_centered = data - data_mean[:, np.newaxis]  # Center the data by subtracting the mean
+    data_centered = data - data_mean[np.newaxis, :]  # Center the data by subtracting the mean
 
     # 3. Compute the covariance matrix (SVD = EVD the covariance matrix, the eigenvalue is the square of singular value)
     cov_matrix = np.cov(data_centered, rowvar=False)
@@ -77,7 +77,7 @@ def reconstruct_data(modal_coefficients, eigvecs, data_mean):
     # Reconstruct data using modal coefficients and eigenvectors
     reconstructed_data = np.dot(modal_coefficients, eigvecs.T)  # Reconstruct data
     # Add the mean back to the reconstructed data to restore original scale
-    return reconstructed_data + data_mean[:, np.newaxis]
+    return reconstructed_data + data_mean[np.newaxis, :]
 
 
 def evaluate_reconstruction(original_data, reconstructed_data):

@@ -5,48 +5,61 @@ import time
 
 
 class SmoothKNNInterpolator:
-    def __init__(self, coord_path: str, mode_path: str, k: int = 20, modes: int = 8):
-        # Load coordinates and modes
+    """
+    Optimized SmoothKNNInterpolator:
+      - support: modes + mean combined input
+      - support: knn index cache to accelerate the later usage
+    """
+    def __init__(self, coord_path: str, mode_path: str, k: int = 20, modes: int = 8, cache_knn: bool = True):
+        # ===== 1. Load coordinates and mode data =====
         coords = pd.read_csv(coord_path, header=None).values  # shape: (N, 3)
-        modes = pd.read_csv(mode_path).iloc[:, :modes].values     # shape: (N, 4)
+        modes = pd.read_csv(mode_path).iloc[:, :modes].values  # shape: (N, modes)
 
-        self.X = torch.tensor(coords, dtype=torch.float32)    # (N, 3)
-        self.Y = torch.tensor(modes, dtype=torch.float32)     # (N, 4)
+        self.X = torch.tensor(coords, dtype=torch.float32)  # (N, 3)
+        self.Y = torch.tensor(modes, dtype=torch.float32)   # (N, modes)
         self.k = k
-
         self.N, self.D = self.X.shape
+        self.cache_knn = cache_knn
+
+        # ===== 2. Optionally cache the KNN indices =====
+        self.knn_idx_cache = None
+        self.knn_dists_cache = None
+        if cache_knn:
+            start = time.time()
+            print(f"[INFO] 🧮 Precomputing KNN for {self.N} reference points (k={k}) ...")
+            with torch.no_grad():
+                dists = torch.cdist(self.X, self.X)  # (N, N)
+                knn_dists, knn_idx = torch.topk(dists, self.k, dim=1, largest=False)
+                self.knn_dists_cache = knn_dists  # (N, k)
+                self.knn_idx_cache = knn_idx      # (N, k)
+            print(f"[INFO] ✅ KNN cache built in {time.time() - start:.2f} s")
 
     @staticmethod
     def _smooth_weights(dists: Tensor) -> Tensor:
-        """
-        Use Gaussian weights to assign soft importance.
-        Shape: (B, k)
-        """
         eps = 1e-8
         weights = torch.exp(- (dists / (dists[:, -1:] + eps)) ** 2)
         return weights / (weights.sum(dim=1, keepdim=True) + eps)
 
     def __call__(self, x: Tensor) -> Tensor:
         """
-        Interpolate values at input locations x (denoted as B).
-        x: (B, 3)
-        Return: (B, 4)
+        Interpolate values at input locations x (B, 3)
+        Returns interpolated field values (B, modes)
         """
-        X = self.X.to(x.device)
-        Y = self.Y.to(x.device)
+        X, Y = self.X.to(x.device), self.Y.to(x.device)
+        x = x.to(X.device)
 
-        x_expanded = x.unsqueeze(1)  # (B, 1, 3)
-        dists = torch.norm(X.unsqueeze(0) - x_expanded, dim=2)  # (B, N)
+        # ===== 1. If query points coincide with training points (cached) =====
+        if self.cache_knn and x.shape[0] == self.N and torch.allclose(x, X, atol=1e-8):
+            knn_dists = self.knn_dists_cache.to(x.device)
+            knn_idx = self.knn_idx_cache.to(x.device)
+        else:
+            x_expanded = x.unsqueeze(1)  # (B, 1, 3)
+            dists = torch.norm(X.unsqueeze(0) - x_expanded, dim=2)  # (B, N)
+            knn_dists, knn_idx = torch.topk(dists, self.k, dim=1, largest=False)
 
-        # Find k nearest neighbors
-        knn_dists, knn_idx = torch.topk(dists, self.k, dim=1, largest=False)  # (B, k)
-        knn_values = Y[knn_idx]  # (B, k, 4)
-
-        # Compute soft weights
+        knn_values = Y[knn_idx]  # (B, k, modes)
         weights = self._smooth_weights(knn_dists)  # (B, k)
-
-        # Weighted sum
-        interpolated = torch.sum(weights.unsqueeze(-1) * knn_values, dim=1)  # (B, 4)
+        interpolated = torch.sum(weights.unsqueeze(-1) * knn_values, dim=1)
         return interpolated
 
 

@@ -10,6 +10,28 @@ import os
 import matplotlib.pyplot as plt
 
 
+# ======== Preprocess Step ========
+def preprocess_modes_and_means():
+    """
+    Combine modes and mean CSVs into modes_plus_mean_*.csv
+    If file already exists, skip.
+    """
+    os.makedirs("./ReducedResults", exist_ok=True)
+    for name in ['P', 'Ut', 'Ur', 'Uz']:
+        combined_path = f'./ReducedResults/modes_plus_mean_{name}.csv'
+        if os.path.exists(combined_path):
+            print(f"[INFO] ⏭️ Skipping existing file: {combined_path}")
+            continue
+        try:
+            modes = pd.read_csv(f'./ReducedResults/modes_{name}.csv')
+            mean = pd.read_csv(f'./ReducedResults/mean_{name}.csv')
+            combined = pd.concat([modes, mean], axis=1)
+            combined.to_csv(combined_path, index=False)
+            print(f"[INFO] ✅ Created: {combined_path}")
+        except FileNotFoundError as e:
+            print(f"[WARNING] ⚠️ Missing file for {name}: {e}")
+
+
 class PINNSystem:
     def __init__(self, hidden_dim=64, hidden_layers=2, lr=1e-3, use_physics_loss=True, use_physics_batch=False, modes=4):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -46,26 +68,19 @@ class PINNSystem:
         # ===== 2. Load outputs & normalize =====
         self.coeffs_target = {}
         self.coeffs_stats = {}
-        self.mean_target = {}
-        self.mean_stats = {}
+        self.mean = {}
 
         for name in ['P', 'Ut', 'Ur', 'Uz']:
             coeff = pd.read_csv(f"./ReducedResults/coefficients_{name}.csv").iloc[:, :self.modes].values
+            # load mean
             mean = pd.read_csv(f"./ReducedResults/mean_{name}.csv").values.squeeze()
-
             coeff_torch = torch.tensor(coeff, dtype=torch.float32)
             mean_torch = torch.tensor(mean, dtype=torch.float32)
-
             coeff_mean = coeff_torch.mean(dim=0)
             coeff_std = coeff_torch.std(dim=0)
             self.coeffs_stats[name] = (coeff_mean.to(self.device), coeff_std.to(self.device))
-
-            mean_mean = mean_torch.mean()
-            mean_std = mean_torch.std()
-            self.mean_stats[name] = (mean_mean.to(self.device), mean_std.to(self.device))
-
             self.coeffs_target[name] = ((coeff_torch - coeff_mean) / coeff_std).to(self.device)
-            self.mean_target[name] = ((mean_torch - mean_mean) / mean_std).to(self.device)
+            self.mean[name] = mean_torch.to(self.device)
 
         # load_ points
         self.coords_all = torch.tensor(pd.read_csv("./coordinate.csv").values, dtype=torch.float32).to(self.device)
@@ -82,7 +97,7 @@ class PINNSystem:
             layers = [nn.Linear(2, self.hidden_dim), nn.Tanh()]
             for _ in range(self.hidden_layers - 1):
                 layers += [nn.Linear(self.hidden_dim, self.hidden_dim), nn.Tanh()]
-            layers += [nn.Linear(self.hidden_dim, self.modes+1)]
+            layers += [nn.Linear(self.hidden_dim, self.modes)]
             return nn.Sequential(*layers).to(self.device)
 
         self.net_P = make_net()
@@ -90,12 +105,12 @@ class PINNSystem:
         self.net_Ur = make_net()
         self.net_Uz = make_net()
 
-        # ===== 4. Interpolators =====
+        # ===== 4. Interpolators (Optimized) =====
         self.interp = {
             name: SmoothKNNInterpolator(
                 coord_path='./coordinate.csv',
-                mode_path=f'./ReducedResults/modes_{name}.csv',
-                modes=self.modes,
+                mode_path=f'./ReducedResults/modes_plus_mean_{name}.csv',
+                modes=self.modes + 1,  # the last column is mean
                 k=3,
             ) for name in ['P', 'Ut', 'Ur', 'Uz']
         }
@@ -142,18 +157,20 @@ class PINNSystem:
         with context():
             for name, net in zip(['P', 'Ut', 'Ur', 'Uz'],
                                  [self.net_P, self.net_Ut, self.net_Ur, self.net_Uz]):
-                pred = net(cond)  # (1, self.modes+1)
+
+                pred = net(cond)  # (1, self.modes)
                 coeffs_norm = pred[:, :self.modes]  # (1, self.modes)
-                mean_norm = pred[:, self.modes]  # (1,)
 
                 coeff_mean, coeff_std = self.coeffs_stats[name]
-                mean_mean, mean_std = self.mean_stats[name]
 
                 coeffs = coeffs_norm * coeff_std + coeff_mean  # (1, self.modes)
-                mean = mean_norm * mean_std + mean_mean  # (1,)
 
-                mode_values = self.interp[name](coords)  # (M, self.modes)
-                field = torch.matmul(mode_values, coeffs.T).squeeze(-1) + mean.item()
+                interp_values = self.interp[name](coords)  # (M, self.modes + 1)
+                mode_values = interp_values[:, :-1]  # extract modes
+                mean_values = interp_values[:, -1]  # extract mean
+                field = torch.matmul(mode_values, coeffs.T).squeeze(-1)
+                field += mean_values
+                # relocate
                 fields[name] = field
 
         return fields
@@ -167,19 +184,15 @@ class PINNSystem:
                              [self.net_P, self.net_Ut, self.net_Ur, self.net_Uz]):
             pred = net(self.conditions)         # (N, self.modes+1)
             coeff_pred = pred[:, :self.modes]
-            mean_pred = pred[:, self.modes]
 
             coeff_true = self.coeffs_target[name]
-            mean_true = self.mean_target[name]
 
             train_mask = self.train_mask
             test_mask = self.test_mask
 
             train_losses.append(loss_fn(coeff_pred[train_mask], coeff_true[train_mask]))
-            train_losses.append(loss_fn(mean_pred[train_mask], mean_true[train_mask]))
 
             test_losses.append(loss_fn(coeff_pred[test_mask], coeff_true[test_mask]))
-            test_losses.append(loss_fn(mean_pred[test_mask], mean_true[test_mask]))
 
         return sum(train_losses), sum(test_losses)
 
@@ -376,7 +389,6 @@ def save_checkpoint(system: PINNSystem, seed: int, path: str = "ReconstructORI")
         'qv_mean': system.qv_mean,
         'qv_std': system.qv_std,
         'coeffs_stats': system.coeffs_stats,
-        'mean_stats': system.mean_stats,
     }
     filename = path + f"/Checkpoint_SEED{seed}_LR{system.lr}_HD{system.hidden_dim}_HL{system.hidden_layers}_MO{system.modes}_Epoch{system.epoch}_WithPhysics{int(system.use_physics_loss)}_WithBatch{int(system.use_physics_batch)}"
     if system.pretrain_epoch:
@@ -431,7 +443,6 @@ def load_checkpoint(path: str):
     system.qv_mean = checkpoint['qv_mean']
     system.qv_std = checkpoint['qv_std']
     system.coeffs_stats = checkpoint['coeffs_stats']
-    system.mean_stats = checkpoint['mean_stats']
     system.epoch = int(parsed['epoch'])
 
     print("[INFO] ✅ Model and stats restored successfully from checkpoint.")
@@ -538,7 +549,7 @@ def train_PINN(system: PINNSystem, epochs: int = 9999, coord_batch_size: int = 6
         if system.use_physics_batch:
             train_loss, test_loss, phy_loss = system.step_with_physics_batches(coord_batch_size)
             print(f"[Epoch {ep:04d}] Train Loss = {train_loss:.6f} | Test Loss = {test_loss:.6f} | Physic = {phy_loss:.6f}")
-            # This Save
+            # This Save (the step directory could be deleted manually after the model is successfully generated in its upper filefolder to save your disk space)
             save_checkpoint(system, seed=SEED, path='./ReconstructORI/Step')
             save_loss_curve(train_loss_history, test_loss_history, phy_loss_history,
                             SEED, system.lr, system.hidden_dim,
@@ -575,6 +586,7 @@ if __name__ == "__main__":
     pretrain_epochs = 50
 
     # ===== Initialize Model =====
+    preprocess_modes_and_means()
     pinn = PINNSystem(
         hidden_dim=hidden_dim,
         hidden_layers=hidden_layers,
