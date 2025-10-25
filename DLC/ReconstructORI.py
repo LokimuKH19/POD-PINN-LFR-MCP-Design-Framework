@@ -33,7 +33,8 @@ def preprocess_modes_and_means():
 
 
 class PINNSystem:
-    def __init__(self, hidden_dim=64, hidden_layers=2, lr=1e-3, use_physics_loss=True, use_physics_batch=False, modes=4):
+    def __init__(self, hidden_dim=64, hidden_layers=2, lr=1e-3, use_physics_loss=True, use_physics_batch=False, modes=4,
+                 scaling_factor=1):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(f"[INFO] Using device: {self.device}")
         self.use_physics_loss_original = use_physics_loss
@@ -45,6 +46,7 @@ class PINNSystem:
         self.epoch = 0
         self.pretrain_epoch = 0
         self.modes = modes
+        self.scaling_factor = scaling_factor
         # ===== 1. Load input and normalize =====
         data = pd.read_csv('./EXP.csv')
         omega = torch.tensor(data['omega'].values, dtype=torch.float32)
@@ -322,7 +324,7 @@ class PINNSystem:
     def compute_total_loss(self, coord_batch_size=64):
         train_loss, test_loss = self.compute_data_loss()
         physics_loss = self.compute_hidden_constraint_loss(coord_batch_size=coord_batch_size)
-        total_loss = train_loss + physics_loss
+        total_loss = train_loss + physics_loss * self.scaling_factor
         return total_loss, train_loss.item(), test_loss.item(), physics_loss.item()
 
     def step_with_physics_batches(self, coord_batch_size=64):
@@ -526,8 +528,7 @@ def train_PINN(system: PINNSystem, epochs: int = 9999, coord_batch_size: int = 6
             mode='min',
             factor=scheduler_factor,
             patience=scheduler_patience,
-            min_lr=scheduler_min_lr,
-            verbose=True
+            min_lr=scheduler_min_lr
         )
     # Pretraining stage (no physics loss)
     if pretrain_epoch:
@@ -546,16 +547,19 @@ def train_PINN(system: PINNSystem, epochs: int = 9999, coord_batch_size: int = 6
     print("[INFO] Starting main training...")
     for ep in range(1, epochs + 1):
         system.epoch += 1
-        if system.use_physics_batch:
+        if system.use_physics_batch and system.use_physics_loss:
             train_loss, test_loss, phy_loss = system.step_with_physics_batches(coord_batch_size)
             print(f"[Epoch {ep:04d}] Train Loss = {train_loss:.6f} | Test Loss = {test_loss:.6f} | Physic = {phy_loss:.6f}")
             # This Save (the step directory could be deleted manually after the model is successfully generated in its upper filefolder to save your disk space)
-            save_checkpoint(system, seed=SEED, path='./ReconstructORI/Step')
+            step_path = "./ReconstructORI/Step"
+            if not os.path.exists(step_path):
+                os.mkdir(step_path)
+            save_checkpoint(system, seed=SEED, path=step_path)
             save_loss_curve(train_loss_history, test_loss_history, phy_loss_history,
                             SEED, system.lr, system.hidden_dim,
                             system.hidden_layers, system.modes, system.use_physics_loss,
                             system.use_physics_batch, system.pretrain_epoch,
-                            save_dir="./ReconstructORI/Step")
+                            save_dir=step_path)
         else:
             train_loss, test_loss, phy_loss = system.step(coord_batch_size)
             print(f"[Epoch {ep:04d}] Train Loss = {train_loss:.6f} | Test Loss = {test_loss:.6f} "
@@ -566,13 +570,15 @@ def train_PINN(system: PINNSystem, epochs: int = 9999, coord_batch_size: int = 6
         # Scheduler step based on test loss
         if scheduler:
             scheduler.step(test_loss)
+            current_lr = scheduler.optimizer.param_groups[0]['lr']
+            print(f"    [LR Scheduler] Epoch {ep:04d}: current LR = {current_lr:.6e}")
     return train_loss_history, test_loss_history, phy_loss_history
 
 
 if __name__ == "__main__":
     # ======== Main Entry, Train Your Model Here ========
     MODES = 4
-    SEED = 1024
+    SEED = 42
     set_seed(SEED)
 
     # ===== Hyper Parameters =====
@@ -582,8 +588,15 @@ if __name__ == "__main__":
     coord_batch_size = 128
     use_physics_loss = True
     use_physics_batch = True    # slow but accurate, can decrease the epochs
-    epochs = 63
+    epochs = 50
     pretrain_epochs = 50
+
+    use_scheduler = True         # scheduler parameters
+    scheduler_patience = 10
+    scheduler_factor = 0.75
+    scheduler_min_lr = 1e-3
+
+    scaling_factor = 10           # scale factor to balance physics loss and sample loss
 
     # ===== Initialize Model =====
     preprocess_modes_and_means()
@@ -603,7 +616,10 @@ if __name__ == "__main__":
         epochs=epochs,
         coord_batch_size=coord_batch_size,
         pretrain_epoch=pretrain_epochs,
-        use_scheduler=True
+        use_scheduler=False,
+        scheduler_patience = scheduler_patience,
+        scheduler_factor = scheduler_factor,
+        scheduler_min_lr= scheduler_min_lr,
     )
 
     # ===== Save Checkpoint =====
