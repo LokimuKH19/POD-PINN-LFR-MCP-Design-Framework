@@ -1,3 +1,5 @@
+> Divice Replacement Note: The new experiments were runned on a Nvidia4060 GPU.
+
 > To deploy the models, ensure to activate the `view.bat` in THIS FOLDER (temporarily unavailable)
 
 > The previous attempts on other pump design and physical properties, see in [here](../model_summon/) for more technical details
@@ -33,6 +35,12 @@ Several Improvemment has been applied to the POD-PINN model, we added the normal
         FZ = (FZ-torch.min(FZ))/(torch.max(FZ)-torch.min(FZ))
 ```
 Consequently, the monitor of the physical loss is also updated.
+
+### Major Update on Oct. 25, 2025
+- `ReduceOrder.py`: The demeaning step in the program has been updated. If the operating conditions only cause minor shifts in parameters (such as outlet flow or impeller speed) but the modes remain largely unchanged, the global mean can represent a "central/reference field," and the modes will explain the main shape differences around this common field. This resulting modes are easier to use for parameterization, coefficient interpolation, or constructing a unified ROM. Furthermore, this eliminates the need for regression to the mean, reduces the output dimensionality, and makes training easier.
+- `InterpolatorORI.py`: Added index cache operation to avoid the re-indexing during the training. Meanwhile, the interpolation operations of the mean values are applied and the related interpolators are embedded into the mode interpolators to further optimize. 
+- `ReconstructedORI.py`: Modified accordingly to suit for those changes. These 2 updates significant imporved the training speed of each epoch (decreased from 1.5s to about 0.5s per batch)
+- Related `./ReducedResults` filefolder updated
 
 # Reduced Order Modeling is not suitable enough for the problems with high non-linearity
 
