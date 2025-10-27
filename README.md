@@ -1,8 +1,8 @@
 # 🌀 POD-PINN Based Main Pump Flow Field Predictor
 
-- `./model_summon`: POD-PINN
+- `./model_summon`: POD-PINN (original one)
 
-- `./DLC`: upgraded POD-PINN with higher orders and why the ROM is not suitable here
+- `./DLC`: POD-PINN with general centerization method
 
 - `./FullOrder`: MLP, DeepONet(MLP,FNO,CNO,SA-CFNO as the trunk, MLP as the branch)
 
