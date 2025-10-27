@@ -2,7 +2,7 @@
 
 - `./model_summon`: POD-PINN (original one)
 
-- `./DLC`: POD-PINN with general centerization method
+- `./DLC`: POD-PINN with general centerization method, de-optimized. Temporarily disabled.
 
 - `./FullOrder`: MLP, DeepONet(MLP,FNO,CNO,SA-CFNO as the trunk, MLP as the branch)
 
