@@ -1,5 +1,11 @@
+# Models Used in this Digital Twin
 
-# Reduced Order Modeling is not suitable enough for the problems with high non-linearity
+> the dataet remains the same as the NURETH21 paper 1193.
+
+## POD-PINN
+Most part remains the same as the method illustrated in the Nureth-Conference, but there are 2 main improvements:
+1. The Interpolation Method:
+2. The Diffusion Term
 
 ## A Pure MLP
 The very basic model for comparison
