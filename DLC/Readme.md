@@ -24,18 +24,6 @@ Although this approach departs from the strict Galerkin formulation, it aligns w
 - `EXP.csv`: the dataset division;
 - `ur.csv`, `ut.csv`, `uz.csv`, `P.csv`: the flow field distribution $\left[u_r, u_\theta, u_z, p\right]\left(x,\beta\right)$ on the 26 different operating conditions.
 
-### Update on Oct. 23, 2025
-Several Improvemment has been applied to the POD-PINN model, we added the normalization into the physical losses, therefore the scaling factor of the model can be removed:
-
-```python
-        # Using the normalized Phy_loss
-        FC = (FC-torch.min(FC))/(torch.max(FC)-torch.min(FC))
-        FR = (FR-torch.min(FR))/(torch.max(FR)-torch.min(FR))
-        FTH = (FTH-torch.min(FTH))/(torch.max(FTH)-torch.min(FTH))
-        FZ = (FZ-torch.min(FZ))/(torch.max(FZ)-torch.min(FZ))
-```
-Consequently, the monitor of the physical loss is also updated.
-
 ### Major Update on Oct. 25, 2025
 - `ReduceOrder.py`: The demeaning step in the program has been updated. If the operating conditions only cause minor shifts in parameters (such as outlet flow or impeller speed) but the modes remain largely unchanged, the global mean can represent a "central/reference field," and the modes will explain the main shape differences around this common field. This resulting modes are easier to use for parameterization, coefficient interpolation, or constructing a unified ROM. Furthermore, this eliminates the need for regression to the mean, reduces the output dimensionality, and makes training easier.
 - `InterpolatorORI.py`: Added index cache operation to avoid the re-indexing during the training. Meanwhile, the interpolation operations of the mean values are applied and the related interpolators are embedded into the mode interpolators to further optimize. 
