@@ -1,10 +1,10 @@
 # 🌀 POD-PINN Based Main Pump Flow Field Predictor
 
-- `./model_summon`: POD-PINN (original one)
+- `./model_summon`: POD-PINN (original one, span=0.65)
 
 - `./DLC`: POD-PINN with general centerization method, de-optimized. Temporarily disabled.
 
-- `./FullOrder`: MLP, DeepONet(MLP,FNO,CNO,SA-CFNO as the trunk, MLP as the branch)
+- `./FullOrder`: Modified POD-PINN, MLP, DeepONet(MLP,FNO,CNO,SA-CFNO as the trunk, MLP as the branch, span=0.5)
 
 > This Repo is related to NURETH-21 Paper 1193(Developing a Real-Time Surrogate Model with POD-PINN Approach for the Flow Field in the Main Coolant Pump of Lead-Cooled Fast Reactors)'s PRESENTATION and a coming work planned to submit to a journal related to this repository. Because of the limitation on passage length during the conference, we failed to report all necessary experimental details in that work. However, we all agree that the effort we paid on the improvements of the model should be recorded to gather the experience and indicate the lessons we learnt from the procedure. That's how this repo was set up and the complete version of the paper was written.
 
