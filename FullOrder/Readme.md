@@ -12,6 +12,8 @@
 - `coordinates.csv`: the coordinates of the 0.5 span zone;
 - `EXP.csv`: the dataset division;
 - `ur.csv`, `ut.csv`, `uz.csv`, `P.csv`: the flow field distribution of the 0.5 span zone $\left[u_r, u_\theta, u_z, p\right]\left(x,\beta\right)$ on the 25 different operating conditions.
+- `ResultReading.py`: Streamlit code for the model analyzer
+- `view.bat`: Start the Streamlit analyzer UI
 
 ## POD-PINN
 Most part remains the same as the method illustrated in the Nureth-Conference, but there are 2 main improvements:
