@@ -6,6 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from ReconstructORI import PINNSystem, Config, load_checkpoint
+from TRAIN_FullOrder import FullOrderPINN, Config as FullOrderConfig, load_checkpoint as load_fullorder_checkpoint
 import glob
 from scipy.spatial import Voronoi
 from shapely.geometry import Polygon
@@ -68,56 +69,91 @@ if 'coordinates' not in st.session_state:
     st.session_state.weights = estimate_weights(st.session_state.coordinates[:, [0, 2]])  # Use r and z coordinates
 if 'loss_history' not in st.session_state:
     st.session_state.loss_history = {}
+if 'model_source' not in st.session_state:
+    st.session_state.model_source = ""  # Track which type of model is loaded
 
 
-# Get all available model files
+# Get all available model files from both sources
 def get_model_files():
-    """Get all model files from ReconstructORI folders"""
+    """Get all model files from both ReconstructORI and FullOrderReconstruct folders"""
     models = []
+
     # Get models from ReconstructORI/Step folder
     step_dir = os.path.join(base_dir, "ReconstructORI/Step")
     if os.path.exists(step_dir):
-        for file in glob.glob(os.path.join(step_dir, "*.pth")):
-            models.append(file)
+        for file in glob.glob(os.path.join(step_dir, "*_checkpoint.pth")):
+            models.append(("ReconstructORI", file))
+
     # Get models from ReconstructORI folder
     ori_dir = os.path.join(base_dir, "ReconstructORI")
     if os.path.exists(ori_dir):
-        for file in glob.glob(os.path.join(ori_dir, "*.pth")):
-            models.append(file)
-    return sorted(models)
+        for file in glob.glob(os.path.join(ori_dir, "*_checkpoint.pth")):
+            models.append(("ReconstructORI", file))
+
+    # Get models from FullOrderReconstruct folder
+    fullorder_dir = os.path.join(base_dir, "FullOrderReconstruct")
+    if os.path.exists(fullorder_dir):
+        for file in glob.glob(os.path.join(fullorder_dir, "*_checkpoint.pth")):
+            models.append(("FullOrderReconstruct", file))
+
+    return sorted(models, key=lambda x: x[1])
 
 
 # Model loading function
-def load_model(file_path):
+def load_model(file_path, model_source):
     """Load model by file path and parse parameters"""
     try:
         # Extract run name from file path
         filename = os.path.basename(file_path)
         run_name = filename.replace('_checkpoint.pth', '')
 
-        # Load model using the provided function
-        model, config, loss_history = load_checkpoint(run_name, os.path.dirname(file_path))
+        if model_source == "ReconstructORI":
+            # Load original POD-PINN model
+            model, config, loss_history = load_checkpoint(run_name, os.path.dirname(file_path))
 
-        # Parse model parameters for display
-        params_to_display = {
-            "Random Seed": config.SEED,
-            "Learning Rate": config.learning_rate,
-            "Hidden Layer Dimensions": config.hidden_dim,
-            "Hidden Layers": config.hidden_layers,
-            "Modes": config.MODES,
-            "Using Physics Constraints": config.use_physics_loss,
-            "Physics Batch Training": config.use_physics_batch,
-            "Pretrain Epochs": config.pretrain_epochs,
-            "Total Epochs": config.epochs,
-            "Physics Loss Scale": config.physics_loss_scale
-        }
+            # Parse model parameters for display
+            params_to_display = {
+                "Model Type": "POD-PINN (Reduced Order)",
+                "Random Seed": config.SEED,
+                "Learning Rate": config.learning_rate,
+                "Hidden Layer Dimensions": config.hidden_dim,
+                "Hidden Layers": config.hidden_layers,
+                "Modes": config.MODES,
+                "Using Physics Constraints": config.use_physics_loss,
+                "Physics Batch Training": config.use_physics_batch,
+                "Pretrain Epochs": config.pretrain_epochs,
+                "Total Epochs": config.epochs,
+                "Physics Loss Scale": config.physics_loss_scale
+            }
+
+        else:  # FullOrderReconstruct
+            # Load FullOrderPINN model
+            model, config, loss_history = load_fullorder_checkpoint(run_name, os.path.dirname(file_path))
+
+            # Parse model parameters for display
+            params_to_display = {
+                "Model Type": "FullOrder PINN",
+                "Network Type": config.net_type,
+                "Model Mode": config.model_mode,
+                "Random Seed": config.SEED,
+                "Learning Rate": config.learning_rate,
+                "Hidden Layer Dimensions": config.hidden_dim,
+                "Hidden Layers": config.hidden_layers,
+                "Branch Hidden Dim": config.hidden_branch_dim,
+                "Branch Layers": config.hidden_branch_layers,
+                "Using Physics Constraints": config.use_physics_loss,
+                "Physics Batch Training": config.use_physics_batch,
+                "Pretrain Epochs": config.pretrain_epochs,
+                "Total Epochs": config.epochs,
+                "Scaling Factor": config.scaling_factor
+            }
 
         # Find corresponding loss curve image and config
         loss_image_path = file_path.replace('_checkpoint.pth', '_loss_curves.png')
         loss_csv_path = file_path.replace('_checkpoint.pth', '_loss_history.csv')
         config_path = file_path.replace('_checkpoint.pth', '_config.json')
 
-        return model, "ReconstructORI", params_to_display, loss_image_path, loss_csv_path, config_path, loss_history
+        return model, model_source, params_to_display, loss_image_path, loss_csv_path, config_path, loss_history
 
     except Exception as e:
         st.error(f"Failed to load model: {str(e)}")
@@ -130,11 +166,15 @@ st.sidebar.header("Model Selection")
 # Get all available models
 model_files = get_model_files()
 
-model_name = ''
 if model_files:
-    # Create file selector
-    selected_model = st.sidebar.selectbox("Select model file", model_files, index=0)
-    model_name = selected_model
+    # Create file selector with model type info
+    model_options = [f"[{source}] {os.path.basename(path)}" for source, path in model_files]
+    selected_option = st.sidebar.selectbox("Select model file", model_options, index=0)
+
+    # Extract selected model info
+    selected_index = model_options.index(selected_option)
+    selected_source, selected_model_path = model_files[selected_index]
+    model_name = selected_model_path
 
     # Add refresh button
     if st.sidebar.button("Refresh model list"):
@@ -145,7 +185,7 @@ if model_files:
     if st.sidebar.button("Load selected model"):
         with st.spinner("Loading model..."):
             model, model_type, params, loss_image_path, loss_csv_path, config_path, loss_history = load_model(
-                selected_model)
+                selected_model_path, selected_source)
             if model:
                 st.session_state.model = model
                 st.session_state.model_type = model_type
@@ -154,9 +194,10 @@ if model_files:
                 st.session_state.loss_csv_path = loss_csv_path
                 st.session_state.config_path = config_path
                 st.session_state.loss_history = loss_history
-                st.sidebar.success(f"Model loaded successfully: {os.path.basename(selected_model)}")
+                st.session_state.model_source = selected_source
+                st.sidebar.success(f"Model loaded successfully: {os.path.basename(selected_model_path)}")
 else:
-    st.sidebar.warning("No model files found in ReconstructORI folders")
+    st.sidebar.warning("No model files found in ReconstructORI or FullOrderReconstruct folders")
 
 # Show model info
 if st.session_state.model:
@@ -269,13 +310,18 @@ omega = st.session_state['omega']
 qv = st.session_state['qv']
 
 
-# Model prediction function
+# Model prediction function - works for both model types
 def predict_field(coords, omega, qv):
-    """Predict flow field using model"""
+    """Predict flow field using model - compatible with both model types"""
     coords_tensor = torch.tensor(coords, dtype=torch.float32)
     condition = torch.tensor([omega, qv], dtype=torch.float32)
     with torch.no_grad():
-        predictions = st.session_state.model(coords_tensor, condition)
+        if st.session_state.model_source == "ReconstructORI":
+            # Original POD-PINN model
+            predictions = st.session_state.model(coords_tensor, condition)
+        else:
+            # FullOrderPINN model
+            predictions = st.session_state.model(coords_tensor, condition)
     return predictions
 
 
@@ -463,8 +509,10 @@ if st.button("Compute Flow Field") and st.session_state.model:
                 mask = y_true > 0.01
                 # Normalize based on y_true only
                 y_true_min, y_true_max = np.min(y_true), np.max(y_true)
+
                 def normalize(data):
                     return (data - y_true_min) / (y_true_max - y_true_min + 1e-8)
+
                 y_true_norm = normalize(y_true)[mask]
                 y_pred_norm = normalize(y_pred)[mask]
                 # Relative error
@@ -559,6 +607,7 @@ if st.session_state.model:
                         Ut_exp = pd.read_csv(os.path.join(base_dir, 'Ut.csv'), header=None).iloc[:, exp_idx].values
                         Uz_exp = pd.read_csv(os.path.join(base_dir, 'Uz.csv'), header=None).iloc[:, exp_idx].values
 
+
                         # Calculate metrics
                         def weighted_relative_error(y_pred, y_true):
                             # Avoid division by zero by masking small true values
@@ -576,6 +625,7 @@ if st.session_state.model:
                             # Area-weighted average
                             weights = st.session_state.weights[mask]
                             return np.sum(relative_errors * weights) / np.sum(weights)
+
 
                         results.append({
                             'omega': omega_val,

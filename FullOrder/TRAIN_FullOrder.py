@@ -11,11 +11,77 @@ import matplotlib.pyplot as plt
 from NeuralOperators import FNO2d_small, CNO2d_small, CFNO2d_small
 from Encoders import CoordMLP, CoordCNN
 import torch.nn.functional as F
+import json
+import time
+from datetime import datetime
+import signal
+import sys
 
 
 # ----------------------------------------------
 # FullOrderPINN: PINN-DeepONet-FullMLP
 # ----------------------------------------------
+
+# ======== Configuration Management ========
+class Config:
+    """Configuration management class for FullOrderPINN"""
+
+    def __init__(self, config_dict=None):
+        # Default parameters
+        self.SEED = 42
+        self.net_type = 'CFNO'
+        self.model_mode = 'deeponet'
+        self.hidden_dim = 64
+        self.hidden_layers = 2
+        self.hidden_branch_dim = 128
+        self.hidden_branch_layers = 4
+        self.learning_rate = 1e-3
+        self.coord_batch_size = 128
+        self.use_physics_loss = True
+        self.use_physics_batch = True
+        self.epochs = 210
+        self.pretrain_epochs = 200
+        self.use_scheduler = True
+        self.scheduler_patience = 5
+        self.scheduler_factor = 0.75
+        self.scheduler_min_lr = 1e-6
+        self.scaling_factor = 1.0
+
+        # FNO configs
+        self.fno_configs = {
+            "encoder_type": 'MLP',
+            "width": 16,
+            "depth": 4,
+            "modes": 32,
+            "cheb_modes": (16, 16),
+            "alpha_init": 0.5,
+            "pseudo_grid_size": 64
+        }
+
+        if config_dict:
+            for key, value in config_dict.items():
+                if key == 'fno_configs' and isinstance(value, dict):
+                    self.fno_configs.update(value)
+                else:
+                    setattr(self, key, value)
+
+    def to_dict(self):
+        """Convert config to dictionary"""
+        config_dict = {key: value for key, value in self.__dict__.items()
+                       if not key.startswith('_')}
+        return config_dict
+
+    def save(self, filepath):
+        """Save configuration to JSON file"""
+        with open(filepath, 'w') as f:
+            json.dump(self.to_dict(), f, indent=4)
+
+    @classmethod
+    def load(cls, filepath):
+        """Load configuration from JSON file"""
+        with open(filepath, 'r') as f:
+            config_dict = json.load(f)
+        return cls(config_dict)
 
 
 # ======== Utility: set seed ========
@@ -286,50 +352,29 @@ class FullMLP(nn.Module):
 
 # ======== FullOrderPINN system ========
 class FullOrderPINN:
-    def __init__(self,
-                 net_type='MLP',
-                 model_mode='deeponet',
-                 hidden_dim=64,
-                 hidden_layers=2,
-                 lr=1e-3,
-                 hidden_branch_dim=32,
-                 hidden_branch_layers=4,
-                 use_physics_loss=True,
-                 use_physics_batch=False,
-                 scaling_factor=1.0,
-                 fno_configs=None):
+    def __init__(self, config):
         # device
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(f"[INFO] Using device: {self.device}")
 
+        # Configuration
+        self.config = config
+
         # bookkeeping
-        self.net_type = net_type
-        self.model_mode = model_mode
-        self.hidden_dim = hidden_dim
-        self.hidden_layers = hidden_layers
-        self.lr = lr
-        self.use_physics_loss_original = use_physics_loss
-        self.use_physics_loss = use_physics_loss
-        self.use_physics_batch = use_physics_batch
-        self.scaling_factor = scaling_factor
+        self.net_type = config.net_type
+        self.model_mode = config.model_mode
+        self.hidden_dim = config.hidden_dim
+        self.hidden_layers = config.hidden_layers
+        self.lr = config.learning_rate
+        self.use_physics_loss_original = config.use_physics_loss
+        self.use_physics_loss = config.use_physics_loss
+        self.use_physics_batch = config.use_physics_batch
+        self.scaling_factor = config.scaling_factor
         self.epoch = 0
         self.pretrain_epoch = 0
-        self.hidden_branch_dim = hidden_branch_dim
-        self.hidden_branch_layers = hidden_branch_layers
-
-        # FNO configs
-        if fno_configs is None:
-            self.fno_configs = {
-                "encoder_type": 'MLP',
-                "width": 16,
-                "depth": 3,
-                "modes": 16,
-                "cheb_modes": (8, 8),
-                "alpha_init": 0.5,
-                "pseudo_grid_size": 64
-            }
-        else:
-            self.fno_configs = fno_configs
+        self.hidden_branch_dim = config.hidden_branch_dim
+        self.hidden_branch_layers = config.hidden_branch_layers
+        self.fno_configs = config.fno_configs
 
         # -------- 1. Load EXP (conditions) and split flag ----------
         data = pd.read_csv('./EXP.csv', header=0)
@@ -538,6 +583,7 @@ class FullOrderPINN:
                 # Approximate Laplacian as sum of squared first derivatives
                 lap_approx = du_dr ** 2 + (1 / r ** 2) * du_dtheta ** 2 + du_dz ** 2
                 return lap_approx
+
             # Replace Laplacians in viscous terms
             lap_ur_approx = simple_visc(ur)
             lap_ut_approx = simple_visc(ut)
@@ -692,204 +738,313 @@ class FullOrderPINN:
         self.optim.step()
         return train_loss.item(), test_loss.item(), phy_loss.item()
 
-    # ---------- checkpoint & save functions ----------
-    def save_checkpoint(self, seed: int, path: str = "FullOrderReconstruct"):
-        checkpoint = {
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optim.state_dict(),
-            'omega_mean': self.omega_mean,
-            'omega_std': self.omega_std,
-            'qv_mean': self.qv_mean,
-            'qv_std': self.qv_std,
-            'net_type': self.net_type,
-            'model_mode': self.model_mode,
-            'hidden_dim': self.hidden_dim,
-            'hidden_layers': self.hidden_layers,
-            'fno_configs': self.fno_configs,
-        }
-        os.makedirs(path, exist_ok=True)
-        filename = os.path.join(path,
-                                f"Checkpoint_SEED{seed}_LR{self.lr}_HD{self.hidden_dim}_HL{self.hidden_layers}_MODE{self.model_mode}_NET{self.net_type}_Epoch{self.epoch}_WithPhysics{int(self.use_physics_loss)}_WithBatch{int(self.use_physics_batch)}.pth")
-        torch.save(checkpoint, filename)
-        print(f"[INFO] ✅ Model checkpoint saved to {filename}")
-        return filename
+
+# ======== Utility Functions ========
+def generate_run_name(config, timestamp=None):
+    """Generate descriptive run name"""
+    if timestamp is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    physics_flag = "Phys" if config.use_physics_loss else "NoPhys"
+    batch_flag = "Batch" if config.use_physics_batch else "NoBatch"
+    pretrain_flag = f"_Pretrain{config.pretrain_epochs}" if config.pretrain_epochs else ""
+
+    return f"FullOrder_{timestamp}_{config.net_type}_{config.model_mode}_{physics_flag}_{batch_flag}_HD{config.hidden_dim}_HL{config.hidden_layers}_LR{config.learning_rate}{pretrain_flag}"
 
 
-def load_fullorder_checkpoint(path: str):
-    print(f"[INFO] 🔄 Loading FullOrder checkpoint from: {path}")
-    checkpoint = torch.load(path, map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-    return checkpoint
+def save_checkpoint(system, run_name, config, loss_history=None, path="./FullOrderReconstruct"):
+    """Save model checkpoint with configuration and loss history"""
+    os.makedirs(path, exist_ok=True)
+
+    checkpoint = {
+        'model_state_dict': system.model.state_dict(),
+        'optimizer_state_dict': system.optim.state_dict(),
+        'omega_mean': system.omega_mean,
+        'omega_std': system.omega_std,
+        'qv_mean': system.qv_mean,
+        'qv_std': system.qv_std,
+        'coord_min': system.coord_min,
+        'coord_max': system.coord_max,
+        'output_mean': system.output_mean,
+        'output_std': system.output_std,
+        'epoch': system.epoch,
+        'pretrain_epoch': system.pretrain_epoch,
+        'loss_history': loss_history if loss_history else {}
+    }
+
+    checkpoint_path = os.path.join(path, f"{run_name}_checkpoint.pth")
+    config_path = os.path.join(path, f"{run_name}_config.json")
+
+    torch.save(checkpoint, checkpoint_path)
+    config.save(config_path)
+
+    print(f"[INFO] ✅ Checkpoint saved to {checkpoint_path}")
+    print(f"[INFO] ✅ Config saved to {config_path}")
+
+    return checkpoint_path, config_path
 
 
-def save_loss_curve(train_loss, test_loss, physics_loss, SEED, learning_rate, hidden_dim,
-                    hidden_layers, modes_or_model, use_physics_loss, use_physics_batch, pretrain,
-                    save_dir="FullOrderReconstruct"):
-    epochs = len(train_loss)
-    os.makedirs(save_dir, exist_ok=True)
+def load_checkpoint(run_name, path="./FullOrderReconstruct"):
+    """Load model checkpoint and configuration"""
+    checkpoint_path = os.path.join(path, f"{run_name}_checkpoint.pth")
+    config_path = os.path.join(path, f"{run_name}_config.json")
 
-    filename_base = (f"Losscurve_SEED{SEED}_LR{learning_rate}_HD{hidden_dim}_"
-                     f"HL{hidden_layers}_MO{modes_or_model}_Epoch{epochs}_WithPhysics{int(use_physics_loss)}"
-                     f"_WithBatch{int(use_physics_batch)}"
-                     f"{'' if not pretrain else '_Pretrain' + str(pretrain)}")
+    print(f"[INFO] 🔄 Loading checkpoint from: {checkpoint_path}")
+    checkpoint = torch.load(checkpoint_path, map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
-    # 保存图像
-    plt.figure(figsize=(10, 6))
-    train_loss_c = [float(x.detach().cpu().item() if torch.is_tensor(x) else x) for x in train_loss]
-    test_loss_c = [float(x.detach().cpu().item() if torch.is_tensor(x) else x) for x in test_loss]
+    # Load configuration
+    config = Config.load(config_path)
 
-    plt.plot(train_loss_c, label="Train Loss", marker='o', markersize=3)
-    plt.plot(test_loss_c, label="Test Loss", marker='s', markersize=3)
-    plt.plot(physics_loss, label="Physics Loss", marker='^', markersize=3)
+    # Set seed for reproducibility
+    set_seed(config.SEED)
+
+    # Create system
+    system = FullOrderPINN(config)
+
+    # Load model parameters
+    system.model.load_state_dict(checkpoint['model_state_dict'])
+    system.optim.load_state_dict(checkpoint['optimizer_state_dict'])
+
+    # Load normalization stats
+    system.omega_mean = checkpoint['omega_mean']
+    system.omega_std = checkpoint['omega_std']
+    system.qv_mean = checkpoint['qv_mean']
+    system.qv_std = checkpoint['qv_std']
+    system.coord_min = checkpoint['coord_min']
+    system.coord_max = checkpoint['coord_max']
+    system.output_mean = checkpoint['output_mean']
+    system.output_std = checkpoint['output_std']
+    system.epoch = checkpoint['epoch']
+    system.pretrain_epoch = checkpoint['pretrain_epoch']
+
+    print("[INFO] ✅ Model and stats restored successfully from checkpoint.")
+    return system, config, checkpoint.get('loss_history', {})
+
+
+def save_loss_history(loss_history, run_name, path="./FullOrderReconstruct"):
+    """Save loss history to CSV file"""
+    os.makedirs(path, exist_ok=True)
+    csv_path = os.path.join(path, f"{run_name}_loss_history.csv")
+
+    df = pd.DataFrame(loss_history)
+    df.to_csv(csv_path, index=False)
+    print(f"[INFO] ✅ Loss history saved to {csv_path}")
+    return csv_path
+
+
+def save_loss_curves(loss_history, run_name, path="./FullOrderReconstruct"):
+    """Save loss curves as plots"""
+    os.makedirs(path, exist_ok=True)
+
+    epochs = len(loss_history['train_loss'])
+
+    # Main loss plot
+    plt.figure(figsize=(12, 8))
+
+    plt.subplot(2, 1, 1)
+    plt.plot(loss_history['train_loss'], label="Train Loss", alpha=0.7)
+    plt.plot(loss_history['test_loss'], label="Test Loss", alpha=0.7)
+    if 'physics_loss' in loss_history and any(l > 0 for l in loss_history['physics_loss']):
+        plt.plot(loss_history['physics_loss'], label="Physics Loss", alpha=0.7)
     plt.yscale('log')
     plt.xlabel("Epoch")
     plt.ylabel("Loss (log scale)")
-    plt.title("Training, Test, and Physics Loss Curve (FullOrderPINN)")
+    plt.title(f"Training Loss Curves - {run_name}")
     plt.legend()
     plt.grid(True, which="both", linestyle="--", linewidth=0.5)
+
+    # Learning rate plot if available
+    if 'learning_rate' in loss_history:
+        plt.subplot(2, 1, 2)
+        plt.plot(loss_history['learning_rate'])
+        plt.xlabel("Epoch")
+        plt.ylabel("Learning Rate")
+        plt.title("Learning Rate Schedule")
+        plt.grid(True, which="both", linestyle="--", linewidth=0.5)
+        plt.yscale('log')
+
     plt.tight_layout()
-    plt.savefig(os.path.join(save_dir, filename_base + ".png"))
+    plot_path = os.path.join(path, f"{run_name}_loss_curves.png")
+    plt.savefig(plot_path, dpi=300, bbox_inches='tight')
     plt.close()
 
-    # 保存数据
-    df = pd.DataFrame({
-        "epoch": np.arange(1, epochs + 1),
-        "train_loss": train_loss_c,
-        "test_loss": test_loss_c,
-        "physics_loss": physics_loss
-    })
-    df.to_csv(os.path.join(save_dir, filename_base + ".csv"), index=False)
-
-    print(f"[INFO] Loss curve and data saved to: {filename_base}.(png/csv)")
-    return filename_base
+    print(f"[INFO] ✅ Loss curves saved to {plot_path}")
+    return plot_path
 
 
-def train_PINN(system: FullOrderPINN, epochs: int = 9999, coord_batch_size: int = 64, pretrain_epoch: int = 0,
-               use_scheduler: bool = True, scheduler_patience: int = 50, scheduler_factor: float = 0.75,
-               scheduler_min_lr: float = 1e-6, SEED: int = 42):
-    train_loss_history = []
-    test_loss_history = []
-    phy_loss_history = []
+# ======== Training Function ========
+def train_PINN(system, config, run_name):
+    """
+    Train the FullOrderPINN system with configuration-based parameters
 
-    # Scheduler setup
+    Args:
+        system (FullOrderPINN): The system to train
+        config (Config): Training configuration
+        run_name (str): Unique identifier for this run
+
+    Returns:
+        dict: Loss history containing train_loss, test_loss, physics_loss, learning_rate
+    """
+    # Initialize loss history
+    loss_history = {
+        'train_loss': [],
+        'test_loss': [],
+        'physics_loss': [],
+        'learning_rate': []
+    }
+
+    # Setup scheduler
     scheduler = None
-    if use_scheduler:
+    if config.use_scheduler:
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             system.optim,
             mode='min',
-            factor=scheduler_factor,
-            patience=scheduler_patience,
-            min_lr=scheduler_min_lr
+            factor=config.scheduler_factor,
+            patience=config.scheduler_patience,
+            min_lr=config.scheduler_min_lr,
+            verbose=True
         )
 
+    # Setup interrupt handler
+    def signal_handler(sig, frame):
+        print(f"\n[INFO] ⚠️ Training interrupted at epoch {system.epoch}")
+        print("[INFO] 💾 Saving current state...")
+        save_checkpoint(system, run_name + "_INTERRUPTED", config, loss_history)
+        save_loss_history(loss_history, run_name + "_INTERRUPTED")
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+
     # Pretraining stage (no physics loss)
-    if pretrain_epoch:
-        print("[INFO] Starting pretraining...")
+    if config.pretrain_epochs:
+        print(f"[INFO] Starting pretraining for {config.pretrain_epochs} epochs...")
         system.use_physics_loss = False
-        for ep in range(1, pretrain_epoch + 1):
+
+        for ep in range(1, config.pretrain_epochs + 1):
             system.pretrain_epoch += 1
-            train_loss, test_loss, phy_loss = system.step(coord_batch_size)
-            print(f"[PretrainEpoch {ep:04d}] Train Loss = {train_loss:.6f} | Test Loss = {test_loss:.6f}")
-            train_loss_history.append(train_loss)
-            test_loss_history.append(test_loss)
-            phy_loss_history.append(phy_loss)
+            train_loss, test_loss, physics_loss = system.step(config.coord_batch_size)
+
+            current_lr = system.optim.param_groups[0]['lr']
+
+            loss_history['train_loss'].append(train_loss)
+            loss_history['test_loss'].append(test_loss)
+            loss_history['physics_loss'].append(physics_loss)
+            loss_history['learning_rate'].append(current_lr)
+
+            print(f"[PretrainEpoch {ep:04d}] Train Loss = {train_loss:.6f} | "
+                  f"Test Loss = {test_loss:.6f} | LR = {current_lr:.2e}")
+
     # Enable physics loss if originally enabled
     system.use_physics_loss = system.use_physics_loss_original
 
     # Main training loop
-    print("[INFO] Starting main training...")
-    for ep in range(1, epochs + 1):
+    print(f"[INFO] Starting main training for {config.epochs} epochs...")
+    for ep in range(1, config.epochs + 1):
         system.epoch += 1
-        if system.use_physics_batch and system.use_physics_loss:
-            train_loss, test_loss, phy_loss = system.step_with_physics_batches(coord_batch_size)
-            print(
-                f"[Epoch {ep:04d}] Train Loss = {train_loss:.6f} | Test Loss = {test_loss:.6f} | Physics = {phy_loss:.6f}")
-        else:
-            train_loss, test_loss, phy_loss = system.step(coord_batch_size)
-            print(f"[Epoch {ep:04d}] Train Loss = {train_loss:.6f} | Test Loss = {test_loss:.6f} "
-                  f"| Physics Loss = {phy_loss:.6f}")
-        train_loss_history.append(train_loss)
-        test_loss_history.append(test_loss)
-        phy_loss_history.append(phy_loss)
 
-        # Scheduler step based on test loss
+        if system.use_physics_batch and system.use_physics_loss:
+            train_loss, test_loss, physics_loss = system.step_with_physics_batches(config.coord_batch_size)
+        else:
+            train_loss, test_loss, physics_loss = system.step(config.coord_batch_size)
+
+        current_lr = system.optim.param_groups[0]['lr']
+
+        loss_history['train_loss'].append(train_loss)
+        loss_history['test_loss'].append(test_loss)
+        loss_history['physics_loss'].append(physics_loss)
+        loss_history['learning_rate'].append(current_lr)
+
+        # Print progress
+        if system.use_physics_batch:
+            print(f"[Epoch {ep:04d}] Train Loss = {train_loss:.6f} | "
+                  f"Test Loss = {test_loss:.6f} | Physics Loss = {physics_loss:.6f} | "
+                  f"LR = {current_lr:.2e}")
+        else:
+            print(f"[Epoch {ep:04d}] Train Loss = {train_loss:.6f} | "
+                  f"Test Loss = {test_loss:.6f} | Physics Loss = {physics_loss:.6f} | "
+                  f"LR = {current_lr:.2e}")
+
+        # Update scheduler
         if scheduler:
             scheduler.step(test_loss)
-            current_lr = scheduler.optimizer.param_groups[0]['lr']
-            print(f"    [LR Scheduler] Epoch {ep:04d}: current LR = {current_lr:.6e}")
 
-    return train_loss_history, test_loss_history, phy_loss_history
+        # Save checkpoint periodically
+        save_freq = 1000
+        if config.use_physics_loss and config.use_physics_batch:
+            save_freq = 100
+        if ep % save_freq == 0:
+            save_checkpoint(system, run_name + f"_epoch{ep}", config, loss_history)
+            save_loss_history(loss_history, run_name + f"_epoch{ep}")
+
+    return loss_history
 
 
 # ---------- main entry ----------
 if __name__ == "__main__":
-    # Hyperparameters
-    MODES_OR_MODEL = 'FullOrder'
-    SEED = 1024
-    set_seed(SEED)
+    # ======== Configuration ========
+    config = Config({
+        "SEED": 1024,
+        "net_type": "MLP",   # MLP CNN FNO CNO CFNO Transformer
+        "model_mode": "deeponet",
+        "hidden_dim": 64,
+        "hidden_layers": 4,
+        "hidden_branch_dim": 128,
+        "hidden_branch_layers": 4,
+        "learning_rate": 1e-3,
+        "coord_batch_size": 128,
+        "use_physics_loss": True,
+        "use_physics_batch": True,
+        "epochs": 70,
+        "pretrain_epochs": 200,
+        "use_scheduler": True,
+        "scheduler_patience": 5,
+        "scheduler_factor": 0.75,
+        "scheduler_min_lr": 1e-6,
+        "scaling_factor": 1.0,
+        "fno_configs": {
+            "encoder_type": 'MLP',
+            "width": 16,
+            "depth": 4,
+            "modes": 32,
+            "cheb_modes": (16, 16),
+            "alpha_init": 0.5,
+            "pseudo_grid_size": 64
+        }
+    })
 
-    net_type = "CFNO"
-    model_mode = "deeponet"
-    hidden_dim = 64
-    hidden_layers = 2
-    learning_rate = 1e-3
-    coord_batch_size = 128
-    use_physics_loss = True
-    use_physics_batch = True
-    epochs = 210
-    pretrain_epochs = 200
-    use_scheduler = True
-    scheduler_patience = 5
-    scheduler_factor = 0.75
-    scheduler_min_lr = 1e-6
-    scaling_factor = 1
-    hidden_branch_dim = 128
-    hidden_branch_layers = 4
+    # Set seed for reproducibility
+    set_seed(config.SEED)
 
-    # FNO settings
-    FNO_CONFIGS = {
-        "encoder_type": 'MLP',
-        "width": 16,
-        "depth": 4,
-        "modes": 32,
-        "cheb_modes": (16, 16),
-        "alpha_init": 0.5,
-        "pseudo_grid_size": 64
-    }
+    # Generate unique run name
+    run_name = generate_run_name(config)
+    print(f"[INFO] Starting run: {run_name}")
 
-    # Initialize FullOrderPINN
-    pinn = FullOrderPINN(
-        net_type=net_type,
-        model_mode=model_mode,
-        hidden_dim=hidden_dim,
-        hidden_layers=hidden_layers,
-        lr=learning_rate,
-        use_physics_loss=use_physics_loss,
-        use_physics_batch=use_physics_batch,
-        scaling_factor=scaling_factor,
-        hidden_branch_dim=hidden_branch_dim,
-        hidden_branch_layers=hidden_branch_layers,
-        fno_configs=FNO_CONFIGS,
-    )
+    # Create output directory
+    os.makedirs("./FullOrderReconstruct", exist_ok=True)
 
-    # Train
-    print(f"[INFO] Starting FullOrder training with model_mode={model_mode}, net_type={net_type} ...")
-    train_loss, test_loss, physics_loss = train_PINN(
-        pinn,
-        epochs=epochs,
-        coord_batch_size=coord_batch_size,
-        pretrain_epoch=pretrain_epochs,
-        use_scheduler=use_scheduler,
-        scheduler_patience=scheduler_patience,
-        scheduler_factor=scheduler_factor,
-        scheduler_min_lr=scheduler_min_lr,
-        SEED=SEED
-    )
+    # Save initial configuration
+    config.save(f"./FullOrderReconstruct/{run_name}_config.json")
 
-    # Save final checkpoint and loss curves
-    final_dir = "FullOrderReconstruct"
-    pinn.save_checkpoint(seed=SEED, path=final_dir)
-    save_loss_curve(train_loss, test_loss, physics_loss, SEED, learning_rate, hidden_dim,
-                    hidden_layers, model_mode, use_physics_loss, use_physics_batch, pretrain_epochs,
-                    save_dir=final_dir)
+    # ===== Initialize Model =====
+    pinn = FullOrderPINN(config)
 
-    print("[INFO] ✅ FullOrder training complete.")
+    # ===== Train Model =====
+    loss_history = train_PINN(pinn, config, run_name)
+
+    # ===== Save Final Results =====
+    save_checkpoint(pinn, run_name, config, loss_history, path="./FullOrderReconstruct")
+    save_loss_history(loss_history, run_name, path="./FullOrderReconstruct")
+    save_loss_curves(loss_history, run_name, path="./FullOrderReconstruct")
+
+    print(f"[INFO] ✅ Training completed successfully! Run name: {run_name}")
+
+    # ===== Test Loaded Model =====
+    try:
+        loaded_pinn, loaded_config, loaded_history = load_checkpoint(run_name, path="./FullOrderReconstruct/")
+        example_coords = torch.tensor([[0.146384, 0.044788, -0.098216]], dtype=torch.float32)
+        condition = torch.tensor([630, 0.65])
+        result = loaded_pinn(example_coords, condition)
+        print("\n[Prediction] Loaded model prediction:", result)
+
+    except FileNotFoundError:
+        print("[WARNING] ⚠️ Checkpoint not found for loading test.")
