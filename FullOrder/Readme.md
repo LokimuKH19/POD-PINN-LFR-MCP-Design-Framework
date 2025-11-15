@@ -2,6 +2,8 @@
 
 > the dataet remains the same as the NURETH21 paper 1193.
 
+> Conclusion: Because the Reduced Order model does not require generalization to the solution space, its solution space is significantly smaller compared to the full-order model, making it easier to obtain high-accuracy results.
+
 ## Core Features
 - `ReduceOrder.py`: Perform SVD-POD to the dataset, find the common, dominant modes of the flow field in the form of discrete vectors;
 - `InterpolatorORI.py`: Modes interpolation, turn the discrete eigenvectors into a $\phi(x)$, by doing so we can apply loss functions with spatial derivatives;
