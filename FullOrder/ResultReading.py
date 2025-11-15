@@ -657,12 +657,18 @@ if st.session_state.model:
                         Ut_exp = pd.read_csv(os.path.join(base_dir, 'Ut.csv'), header=None).iloc[:, exp_idx].values
                         Uz_exp = pd.read_csv(os.path.join(base_dir, 'Uz.csv'), header=None).iloc[:, exp_idx].values
 
-
                         # Calculate metrics
+
+                        def correlation_coefficient(y_pred, y_true):
+                            mean_pred, mean_true = np.mean(y_pred), np.mean(y_true)
+                            return np.sum((y_pred - mean_pred) * (y_true - mean_true)) / np.linalg.norm(
+                                y_true - mean_true) / np.linalg.norm(y_pred - mean_pred)
+
                         def weighted_relative_error(y_pred, y_true):
                             # Avoid division by zero by masking small true values
                             mask = y_true > 0.01
-                            # Normalize based on y_true only, some extremely small value of velocity and absolute pressure cause unreasonably high error distribution
+                            # Normalize based on y_true only, some extremely small value of velocity and
+                            # absolute pressure cause unreasonably high error distribution
                             y_true_min, y_true_max = np.min(y_true), np.max(y_true)
                             def normalize(data):
                                 return (data - y_true_min) / (y_true_max - y_true_min + 1e-8)
@@ -680,9 +686,13 @@ if st.session_state.model:
                             'qv': qv_val,
                             'dataset': dataset_type,
                             'P_error': weighted_relative_error(P_pred, P_exp),
+                            'P_corr': correlation_coefficient(P_pred, P_exp),
                             'Ur_error': weighted_relative_error(Ur_pred, Ur_exp),
+                            'Ur_corr': correlation_coefficient(Ur_pred, Ur_exp),
                             'Ut_error': weighted_relative_error(Ut_pred, Ut_exp),
-                            'Uz_error': weighted_relative_error(Uz_pred, Uz_exp)
+                            'Ut_corr': correlation_coefficient(Ut_pred, Ut_exp),
+                            'Uz_error': weighted_relative_error(Uz_pred, Uz_exp),
+                            'Uz_corr': correlation_coefficient(Uz_pred, Uz_exp),
                         })
 
                     progress_bar.progress((idx + 1) / len(all_conditions))
