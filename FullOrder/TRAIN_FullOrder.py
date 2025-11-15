@@ -46,6 +46,9 @@ class Config:
         self.scheduler_factor = 0.75
         self.scheduler_min_lr = 1e-6
         self.scaling_factor = 1.0
+        # 新增：点抽样参数
+        self.point_sampling_ratio = 0.3  # 抽样比例，0-1之间
+        self.use_point_sampling = True  # 是否启用点抽样
 
         # FNO configs
         self.fno_configs = {
@@ -350,6 +353,118 @@ class FullMLP(nn.Module):
         return self.net(x)  # (N,4)
 
 
+class ModifiedDeepONet(nn.Module):
+    def __init__(self, trunk_type='MLP', trunk_hidden=128, trunk_layers=3,
+                 branch_hidden=128, branch_layers=3, out_dim=4,
+                 fusion_hidden=128, fusion_layers=2, fno_configs=None):
+        """
+        Modified DeepONet with fusion network
+
+        Args:
+            trunk_type: Type of trunk network ('MLP'|'CNN'|'Transformer'|'FNO'|'CNO'|'CFNO')
+            trunk_hidden: Hidden dimension for trunk network
+            trunk_layers: Number of layers for trunk network
+            branch_hidden: Hidden dimension for branch network
+            branch_layers: Number of layers for branch network
+            out_dim: Output dimension
+            fusion_hidden: Hidden dimension for fusion network
+            fusion_layers: Number of layers for fusion network
+            fno_configs: Configuration for FNO-based trunks
+        """
+        super().__init__()
+        self.out_dim = out_dim
+
+        # Branch network (conditions -> features)
+        self.branch = BranchNet(
+            input_dim=2,
+            out_dim=branch_hidden,
+            hidden_dim=branch_hidden,
+            hidden_layers=branch_layers
+        )
+
+        # Trunk network (coordinates -> features)
+        if trunk_type == 'MLP':
+            self.trunk = MLPBackbone(
+                input_dim=3,
+                output_dim=trunk_hidden,
+                hidden_dim=trunk_hidden,
+                hidden_layers=trunk_layers
+            )
+        elif trunk_type == 'CNN':
+            self.trunk = CNNBackbone(hidden_dim=trunk_hidden)
+        elif trunk_type == 'Transformer':
+            self.trunk = TransformerBackbone(hidden_dim=trunk_hidden)
+        elif trunk_type in ['FNO', 'CNO', 'CFNO']:
+            if fno_configs is None:
+                fno_configs = {
+                    "encoder_type": 'MLP',
+                    "width": 16,
+                    "depth": 3,
+                    "modes": 16,
+                    "cheb_modes": (8, 8),
+                    "alpha_init": 0.5,
+                    "pseudo_grid_size": 64
+                }
+            self.trunk = FourierBackBone(
+                fno_type=trunk_type,
+                encoder_type=fno_configs["encoder_type"],
+                output_features=trunk_hidden,  # match to hidden dim
+                width=fno_configs["width"],
+                depth=fno_configs["depth"],
+                modes=fno_configs["modes"],
+                cheb_modes=fno_configs["cheb_modes"],
+                alpha_init=fno_configs["alpha_init"],
+                pseudo_grid_size=fno_configs["pseudo_grid_size"],
+                device='cuda'
+            )
+        else:
+            raise ValueError("trunk_type must be 'MLP'|'CNN'|'Transformer'|'FNO'|'CNO'|'CFNO'")
+
+        # Fusion network - combines trunk and branch features
+        self.fusion_net = MLPBackbone(
+            input_dim=trunk_hidden + branch_hidden,
+            output_dim=out_dim,
+            hidden_dim=fusion_hidden,
+            hidden_layers=fusion_layers
+        )
+
+    def forward(self, coords, cond):
+        """
+        coords: (N,3) or (B,N,3) coordinates
+        cond: (B,2) or (2,) conditions
+        returns: if B==1 -> (N, out_dim)
+                 if B>1  -> (B, N, out_dim)
+        """
+        # Handle single batch case
+        if coords.ndim == 2:
+            coords = coords.unsqueeze(0)  # (1, N, 3)
+        if cond.dim() == 1:
+            cond = cond.unsqueeze(0)  # (1, 2)
+
+        B, N, _ = coords.shape
+
+        # Get trunk features: (B, N, trunk_hidden)
+        trunk_feat = self.trunk(coords)  # Could be (N, H) or (B, N, H)
+        if trunk_feat.ndim == 2:
+            trunk_feat = trunk_feat.unsqueeze(0).expand(B, -1, -1)  # (B, N, H)
+
+        # Get branch features: (B, branch_hidden)
+        branch_feat = self.branch(cond)  # (B, H)
+
+        # Expand branch features to match coordinates: (B, N, branch_hidden)
+        branch_feat_expanded = branch_feat.unsqueeze(1).expand(-1, N, -1)
+
+        # Concatenate features: (B, N, trunk_hidden + branch_hidden)
+        fused_features = torch.cat([trunk_feat, branch_feat_expanded], dim=-1)
+
+        # Pass through fusion network: (B, N, out_dim)
+        out = self.fusion_net(fused_features)
+
+        if out.shape[0] == 1:
+            return out.squeeze(0)  # (N, out_dim)
+        return out  # (B, N, out_dim)
+
+
 # ======== FullOrderPINN system ========
 class FullOrderPINN:
     def __init__(self, config):
@@ -375,6 +490,11 @@ class FullOrderPINN:
         self.hidden_branch_dim = config.hidden_branch_dim
         self.hidden_branch_layers = config.hidden_branch_layers
         self.fno_configs = config.fno_configs
+
+        # 新增：点抽样参数
+        self.use_point_sampling = config.use_point_sampling
+        self.point_sampling_ratio = config.point_sampling_ratio
+        self.sampled_point_indices = None  # 当前抽样的点索引
 
         # -------- 1. Load EXP (conditions) and split flag ----------
         data = pd.read_csv('./EXP.csv', header=0)
@@ -417,6 +537,7 @@ class FullOrderPINN:
             data_np = np.loadtxt(f"./{fname}.csv", delimiter=",")
             mean_val = np.mean(data_np)
             std_val = np.std(data_np) + 1e-12
+
             self.output_mean[fname] = mean_val
             self.output_std[fname] = std_val
             data_n = (data_np - mean_val) / std_val
@@ -431,20 +552,43 @@ class FullOrderPINN:
         qv_n = (qv - self.qv_mean) / self.qv_std
         self.conditions = torch.stack([omega_n, qv_n], dim=1).to(self.device)
 
+        # 初始化点抽样
+        self._initialize_point_sampling()
+
         # -------- 4. Create model ----------
-        if self.model_mode == 'deeponet':
-            self.model = DeepONetFull(
+        model_dict = {
+            'deeponet': DeepONetFull(
                 trunk_type=self.net_type,
                 trunk_hidden=self.hidden_dim,
                 trunk_layers=self.hidden_layers,
                 branch_hidden=self.hidden_branch_dim,
                 branch_layers=self.hidden_branch_layers,
                 out_dim=4,
-                fno_configs=self.fno_configs).to(self.device)
+                fno_configs=self.fno_configs
+            ),
+            'modified_deeponet': ModifiedDeepONet(
+                trunk_type=self.net_type,
+                trunk_hidden=self.hidden_dim,
+                trunk_layers=self.hidden_layers,
+                branch_hidden=self.hidden_branch_dim,
+                branch_layers=self.hidden_branch_layers,
+                out_dim=4,
+                fusion_hidden=self.hidden_dim,  # need to be modified
+                fusion_layers=2,
+                fno_configs=self.fno_configs
+            ),
+            'MLP': FullMLP(
+                input_dim=5,
+                hidden_dim=self.hidden_dim,
+                hidden_layers=self.hidden_layers,
+                out_dim=4
+            )
+        }
 
+        if self.model_mode in model_dict:
+            self.model = model_dict[self.model_mode].to(self.device)
         else:
-            self.model = FullMLP(input_dim=5, hidden_dim=self.hidden_dim,
-                                 hidden_layers=self.hidden_layers, out_dim=4).to(self.device)
+            raise ValueError(f"Unknown model_mode: {self.model_mode}")
 
         self.optim = torch.optim.Adam(self.model.parameters(), lr=self.lr)
 
@@ -453,6 +597,39 @@ class FullOrderPINN:
         self.mu = 0.006
         self.g = 9.81
         self.B = 10
+
+    def _initialize_point_sampling(self):
+        """初始化点抽样"""
+        self.total_points = self.coords_all.shape[0]
+        self.sample_size = int(self.total_points * self.point_sampling_ratio)
+        print(
+            f"[INFO] Point sampling: {self.sample_size}/{self.total_points} points (ratio: {self.point_sampling_ratio})")
+
+        # 初始抽样
+        self._resample_points()
+
+    def _resample_points(self):
+        if self.use_point_sampling:
+            self.sampled_point_indices = torch.randperm(self.total_points)[:self.sample_size]
+        else:
+            self.sampled_point_indices = torch.arange(self.total_points)
+
+    def get_sampled_data(self):
+        if self.sampled_point_indices is None:
+            self._resample_points()
+
+        indices = self.sampled_point_indices
+
+        sampled_data = {
+            'coords': self.coords_all[indices],
+            'coords_real': self.coords_real[indices],
+            'Ur_all': self.Ur_all[indices] if hasattr(self, 'Ur_all') else None,
+            'Ut_all': self.Ut_all[indices] if hasattr(self, 'Ut_all') else None,
+            'Uz_all': self.Uz_all[indices] if hasattr(self, 'Uz_all') else None,
+            'P_all': self.P_all[indices] if hasattr(self, 'P_all') else None,
+            'indices': indices
+        }
+        return sampled_data
 
     # ============================================================
     # Forward prediction — user gives physical inputs
@@ -484,30 +661,48 @@ class FullOrderPINN:
         return {'Ur': Ur, 'Ut': Ut, 'Uz': Uz, 'P': P}
 
     # ============================================================
-    # Data Loss (MSE)
+    # Data Loss (MSE) - 修改为使用抽样点
     # ============================================================
-    def compute_data_loss(self):
+    def compute_data_loss(self, use_sampled_points=True):
         """
-        Compute MSE loss between predicted and true normalized fields over all conditions.
-        Returns:
-            train_total (tensor with grad)
-            test_total (tensor with grad)
+        Compute MSE loss between predicted and true normalized fields.
+        Now supports using sampled points to reduce computation.
         """
         loss_fn = nn.MSELoss()
         train_losses, test_losses = [], []
 
         nconds = self.conditions.shape[0]
 
+        # 获取数据（抽样点或全部点）
+        if use_sampled_points and self.use_point_sampling:
+            sampled_data = self.get_sampled_data()
+            coords_input = sampled_data['coords']
+            Ur_data = sampled_data['Ur_all']
+            Ut_data = sampled_data['Ut_all']
+            Uz_data = sampled_data['Uz_all']
+            P_data = sampled_data['P_all']
+        else:
+            coords_input = self.coords_all
+            Ur_data = self.Ur_all
+            Ut_data = self.Ut_all
+            Uz_data = self.Uz_all
+            P_data = self.P_all
+
         for idx in range(nconds):
             cond_input = self.conditions[idx:idx + 1]  # shape (1,2)
-            preds = self.model(self.coords_all, cond_input)  # (Npoints,4)
+            preds = self.model(coords_input, cond_input)  # (Npoints,4)
 
             loss_sum = 0.0
+            field_data = {
+                'P': P_data[:, idx] if P_data is not None else getattr(self, "P_all")[:, idx],
+                'Ut': Ut_data[:, idx] if Ut_data is not None else getattr(self, "Ut_all")[:, idx],
+                'Ur': Ur_data[:, idx] if Ur_data is not None else getattr(self, "Ur_all")[:, idx],
+                'Uz': Uz_data[:, idx] if Uz_data is not None else getattr(self, "Uz_all")[:, idx]
+            }
+
             for name in ['P', 'Ut', 'Ur', 'Uz']:
-                true_n = getattr(self, f"{name}_all")[:, idx]
-                pred_n = preds[:, 'PUtUrUz'.index(name)] if self.model_mode != 'deeponet' else preds[:,
-                                                                                               ['P', 'Ut', 'Ur',
-                                                                                                'Uz'].index(name)]
+                true_n = field_data[name]
+                pred_n = preds[:, ['P', 'Ut', 'Ur', 'Uz'].index(name)]
                 loss_sum += loss_fn(pred_n, true_n)
 
             if self.train_mask[idx]:
@@ -521,12 +716,18 @@ class FullOrderPINN:
         return train_total, test_total
 
     # ============================================================
-    # Physics residual computation
+    # Physics residual computation - 修改为使用抽样点
     # ============================================================
     def compute_physics_residuals(self, coords, condition):
         """
         Compute physics residuals with simplified approach for FNO-based models
+        Uses sampled coordinates if point sampling is enabled
         """
+        # 如果启用了点抽样且coords为None，使用抽样点
+        if coords is None and self.use_point_sampling:
+            sampled_data = self.get_sampled_data()
+            coords = sampled_data['coords_real']  # 使用物理坐标
+
         # Clone coordinates and enable gradients
         coords = coords.detach().clone().requires_grad_(True).to(self.device)
         r = coords[:, 0:1]
@@ -644,7 +845,7 @@ class FullOrderPINN:
         return physics_loss
 
     # ============================================================
-    # Helper losses
+    # Helper losses - 修改为使用抽样点
     # ============================================================
     def compute_hidden_constraint_loss(self, coord_batch_size=64):
         if not self.use_physics_loss:
@@ -652,12 +853,23 @@ class FullOrderPINN:
         idx = torch.nonzero(self.train_mask).squeeze()
         if idx.numel() == 0:
             return torch.tensor(0.0, dtype=torch.float32, device=self.device)
-        sample_idx = idx[torch.randperm(len(idx))[:self.B]]
-        coords_all = self.coords_real[torch.randperm(self.coords_real.shape[0])[:coord_batch_size]]
+
+        # 使用抽样点
+        if self.use_point_sampling:
+            sampled_data = self.get_sampled_data()
+            coords_all = sampled_data['coords_real']
+            # 如果抽样点数量小于batch_size，使用所有抽样点
+            actual_batch_size = min(coord_batch_size, len(coords_all))
+            coords_batch = coords_all[torch.randperm(len(coords_all))[:actual_batch_size]]
+        else:
+            coords_all = self.coords_real[torch.randperm(self.coords_real.shape[0])[:coord_batch_size]]
+            coords_batch = coords_all
+
+        sample_idx = idx[torch.randperm(len(idx))[:min(self.B, len(idx))]]
         physics_loss = 0.0
         for i in sample_idx:
             cond = self.conditions[i].unsqueeze(0)
-            physics_loss += self.compute_physics_residuals(coords_all.clone(), cond)
+            physics_loss += self.compute_physics_residuals(coords_batch.clone(), cond)
         return physics_loss / float(len(sample_idx))
 
     def compute_hidden_constraint_loss_batch(self, coords_batch, condition_batch):
@@ -671,7 +883,8 @@ class FullOrderPINN:
         return physics_loss / float(condition_batch.shape[0])
 
     def compute_total_loss(self, coord_batch_size=64):
-        train_loss, test_loss = self.compute_data_loss()
+        # 使用抽样点计算数据损失
+        train_loss, test_loss = self.compute_data_loss(use_sampled_points=self.use_point_sampling)
         physics_loss = self.compute_hidden_constraint_loss(coord_batch_size=coord_batch_size)
         total_loss = train_loss + physics_loss * self.scaling_factor
         return total_loss, train_loss, test_loss, physics_loss
@@ -680,6 +893,7 @@ class FullOrderPINN:
     def step_with_physics_batches(self, coord_batch_size=64):
         """
         Perform one training step using batches of coordinates for physics loss.
+        Uses sampled points if point sampling is enabled.
         """
         train_loss_total = 0.0
         test_loss_total = 0.0
@@ -694,10 +908,15 @@ class FullOrderPINN:
         sample_idx = idx[torch.randperm(len(idx))[:self.B]]
         condition_batch = self.conditions[sample_idx]  # shape (B,2)
 
-        # permute coordinates for batching
-        coords_permuted = self.coords_all[torch.randperm(self.coords_all.shape[0])]
+        # 使用抽样点
+        if self.use_point_sampling:
+            sampled_data = self.get_sampled_data()
+            coords_permuted = sampled_data['coords_real']
+        else:
+            coords_permuted = self.coords_real[torch.randperm(self.coords_real.shape[0])]
+
         num_coords = coords_permuted.shape[0]
-        num_batches = (num_coords + coord_batch_size - 1) // coord_batch_size
+        num_batches = max(1, (num_coords + coord_batch_size - 1) // coord_batch_size)
 
         for i in range(num_batches):
             start = i * coord_batch_size
@@ -707,8 +926,8 @@ class FullOrderPINN:
             # zero gradients
             self.optim.zero_grad()
 
-            # compute data loss
-            train_loss, test_loss = self.compute_data_loss()
+            # compute data loss (使用抽样点)
+            train_loss, test_loss = self.compute_data_loss(use_sampled_points=self.use_point_sampling)
 
             # compute physics loss for current batch
             physics_loss = self.compute_hidden_constraint_loss_batch(coords_batch, condition_batch)
@@ -732,6 +951,11 @@ class FullOrderPINN:
         return train_loss_total / num_batches, test_loss_total / num_batches, physics_loss_total / num_batches
 
     def step(self, coord_batch_size=64):
+        """训练步骤，每个epoch重新抽样点"""
+        # 每个epoch重新抽样点
+        if self.use_point_sampling:
+            self._resample_points()
+
         self.optim.zero_grad()
         total_loss, train_loss, test_loss, phy_loss = self.compute_total_loss(coord_batch_size=coord_batch_size)
         total_loss.backward()
@@ -748,8 +972,9 @@ def generate_run_name(config, timestamp=None):
     physics_flag = "Phys" if config.use_physics_loss else "NoPhys"
     batch_flag = "Batch" if config.use_physics_batch else "NoBatch"
     pretrain_flag = f"_Pretrain{config.pretrain_epochs}" if config.pretrain_epochs else ""
+    sampling_flag = f"_Sample{config.point_sampling_ratio}" if config.use_point_sampling else ""
 
-    return f"FullOrder_{timestamp}_{config.net_type}_{config.model_mode}_{physics_flag}_{batch_flag}_HD{config.hidden_dim}_HL{config.hidden_layers}_LR{config.learning_rate}{pretrain_flag}"
+    return f"FullOrder_{timestamp}_{config.net_type}_{config.model_mode}_{physics_flag}_{batch_flag}_HD{config.hidden_dim}_HL{config.hidden_layers}_LR{config.learning_rate}{pretrain_flag}{sampling_flag}"
 
 
 def save_checkpoint(system, run_name, config, loss_history=None, path="./FullOrderReconstruct"):
@@ -955,26 +1180,28 @@ def train_PINN(system, config, run_name):
         loss_history['learning_rate'].append(current_lr)
 
         # Print progress
+        sampling_info = f" | Sampled {system.sample_size}/{system.total_points} points" if system.use_point_sampling else ""
+
         if system.use_physics_batch:
             print(f"[Epoch {ep:04d}] Train Loss = {train_loss:.6f} | "
                   f"Test Loss = {test_loss:.6f} | Physics Loss = {physics_loss:.6f} | "
-                  f"LR = {current_lr:.2e}")
+                  f"LR = {current_lr:.2e}{sampling_info}")
         else:
             print(f"[Epoch {ep:04d}] Train Loss = {train_loss:.6f} | "
                   f"Test Loss = {test_loss:.6f} | Physics Loss = {physics_loss:.6f} | "
-                  f"LR = {current_lr:.2e}")
+                  f"LR = {current_lr:.2e}{sampling_info}")
 
         # Update scheduler
         if scheduler:
             scheduler.step(test_loss)
 
         # Save checkpoint periodically
-        save_freq = 1000
-        if config.use_physics_loss and config.use_physics_batch:
-            save_freq = 100
-        if ep % save_freq == 0:
-            save_checkpoint(system, run_name + f"_epoch{ep}", config, loss_history)
-            save_loss_history(loss_history, run_name + f"_epoch{ep}")
+        # save_freq = 1000
+        # if config.use_physics_loss and config.use_physics_batch:
+        #     save_freq = 100
+        # if ep % save_freq == 0:
+        #     save_checkpoint(system, run_name + f"_epoch{ep}", config, loss_history)
+        #     save_loss_history(loss_history, run_name + f"_epoch{ep}")
 
     return loss_history
 
@@ -984,23 +1211,25 @@ if __name__ == "__main__":
     # ======== Configuration ========
     config = Config({
         "SEED": 1024,
-        "net_type": "MLP",   # MLP CNN FNO CNO CFNO Transformer
-        "model_mode": "deeponet",
+        "net_type": "MLP",  # MLP CNN FNO CNO CFNO Transformer
+        "model_mode": "deeponet",  # New ModifiedDeepONet
         "hidden_dim": 64,
-        "hidden_layers": 4,
-        "hidden_branch_dim": 128,
-        "hidden_branch_layers": 4,
-        "learning_rate": 1e-3,
+        "hidden_layers": 5,
+        "hidden_branch_dim": 64,
+        "hidden_branch_layers": 5,
+        "learning_rate": 1e-2,
         "coord_batch_size": 128,
         "use_physics_loss": True,
         "use_physics_batch": True,
-        "epochs": 70,
-        "pretrain_epochs": 200,
+        "epochs": 1000,
+        "pretrain_epochs": 50,
         "use_scheduler": True,
-        "scheduler_patience": 5,
-        "scheduler_factor": 0.75,
+        "scheduler_patience": 8,
+        "scheduler_factor": 0.85,
         "scheduler_min_lr": 1e-6,
-        "scaling_factor": 1.0,
+        "scaling_factor": 1e-8,
+        "use_point_sampling": True,
+        "point_sampling_ratio": 0.3,
         "fno_configs": {
             "encoder_type": 'MLP',
             "width": 16,

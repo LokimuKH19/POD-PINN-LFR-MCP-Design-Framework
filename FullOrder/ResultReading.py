@@ -11,12 +11,30 @@ import glob
 from scipy.spatial import Voronoi
 from shapely.geometry import Polygon
 import json
+from scipy.interpolate import griddata
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Page setup
 st.set_page_config(layout="wide", page_title="PINN Model Viewer")
 st.title("POD-PINN Model Visualization System")
+
+# Setting Parameters for Plotting
+plt.rcParams.update({
+    'font.size': 18,
+    'font.family': 'serif',
+    'font.serif': ['Times New Roman'],
+    'mathtext.fontset': 'stix',
+    'axes.linewidth': 1.2,
+    'lines.linewidth': 1.5,
+    'legend.fontsize': 26,
+    'legend.frameon': True,
+    'legend.framealpha': 0.8,
+    'figure.dpi': 300,
+    'savefig.dpi': 300,
+    'savefig.bbox': 'tight',
+    'savefig.pad_inches': 0.1
+})
 
 
 # Calculate Weights for Each Point
@@ -326,21 +344,39 @@ def predict_field(coords, omega, qv):
 
 
 # Field plotting function
-def plot_field(coords, field, title, vmin=None, vmax=None):
+def plot_field(coords, field, title, vmin=None, vmax=None, levels=20, cmap="coolwarm", mode="scatter"):
     """Plot flow field distribution"""
-    fig, ax = plt.subplots(figsize=(6, 5))
+    fig, ax = plt.subplots(figsize=(8, 8))
 
     # Use radial and axial coordinates
     theta = coords[:, 1]
     z = coords[:, 2]
+    t_min, t_max = theta.min(), theta.max()
+    z_min, z_max = z.min(), z.max()
 
-    sc = ax.scatter(theta, z, c=field, cmap='viridis', s=5, vmin=vmin, vmax=vmax)
-    plt.colorbar(sc, label=title.split(' ')[0])
+    t_grid = np.linspace(t_min, t_max, 200)
+    z_grid = np.linspace(z_min, z_max, 200)
+    T, Z = np.meshgrid(t_grid, z_grid)
 
-    ax.set_xlabel('Radial Coordinate (m)')
+    if mode == "cmap":
+        field_grid = griddata((theta, z), field, (T, Z), method='linear', fill_value=np.nan)
+        contour = ax.contourf(T, Z, field_grid, levels=levels, cmap=cmap,
+                              vmin=vmin, vmax=vmax, alpha=0.9)
+
+        ax.contour(T, Z, field_grid, levels=levels, colors='black',
+                   linewidths=0.5, alpha=0.5)
+        # Color Bar
+        plt.colorbar(contour, ax=ax, shrink=0.8, aspect=20)
+
+    elif mode == "scatter":
+        sc = ax.scatter(theta, z, c=field, cmap=cmap, s=10, vmin=vmin, vmax=vmax)
+        plt.colorbar(sc, ax=ax, shrink=0.8, aspect=20)
+
+    ax.set_xlabel('Tangential Coordinate (rad)')
     ax.set_ylabel('Axial Coordinate (m)')
-    ax.set_title(title)
-    fig.tight_layout()
+    ax.set_aspect(4.5)
+    ax.set_title(title, fontweight='bold', fontsize=26)
+    ax.grid(True, alpha=0.3, linestyle='--')
     return fig
 
 
@@ -402,7 +438,7 @@ if st.button("Compute Flow Field") and st.session_state.model:
         st.subheader("Model Prediction Results")
         cols = st.columns(4)
         with cols[0]:
-            st.pyplot(plot_field(st.session_state.coordinates, P_pred, "Pressure Field (Pa)"))
+            st.pyplot(plot_field(st.session_state.coordinates, P_pred/1e6, "Pressure Field (MPa)"))
         with cols[1]:
             st.pyplot(plot_field(st.session_state.coordinates, Ur_pred, "Radial Velocity (m/s)"))
         with cols[2]:
@@ -425,6 +461,22 @@ if st.button("Compute Flow Field") and st.session_state.model:
             Ut_exp = pd.read_csv(os.path.join(base_dir, 'Ut.csv'), header=None).iloc[:, exp_idx].values
             Uz_exp = pd.read_csv(os.path.join(base_dir, 'Uz.csv'), header=None).iloc[:, exp_idx].values
 
+            # Original Data
+            st.subheader("Data Set")
+            cols = st.columns(4)
+            with cols[0]:
+                st.pyplot(plot_field(st.session_state.coordinates, P_exp/1e6, "Pressure Field (MPa)",
+                                     vmin=np.min(P_pred)/1e6, vmax=np.max(P_pred)/1e6))
+            with cols[1]:
+                st.pyplot(plot_field(st.session_state.coordinates, Ur_exp, "Radial Velocity (m/s)",
+                                     vmin=np.min(Ur_pred), vmax=np.max(Ur_pred)))
+            with cols[2]:
+                st.pyplot(plot_field(st.session_state.coordinates, Ut_exp, "Tangential Velocity (m/s)",
+                                     vmin=np.min(Ut_pred), vmax=np.max(Ut_pred)))
+            with cols[3]:
+                st.pyplot(plot_field(st.session_state.coordinates, Uz_exp, "Axial Velocity (m/s)",
+                                     vmin=np.min(Uz_pred), vmax=np.max(Uz_pred)))
+
             # Calculate and show Point-to-Point Relative Errors
             st.subheader("Point-to-Point Error Distribution (POD-PINN comparing to CFD)")
             new_cols = st.columns(4)
@@ -445,16 +497,16 @@ if st.button("Compute Flow Field") and st.session_state.model:
             with new_cols[0]:
                 st.pyplot(
                     plot_field(st.session_state.coordinates, relative_errors(P_pred, P_exp), "Pressure-RelativeError",
-                               vmin=0, vmax=2))
+                               vmin=0, vmax=1.4))
             with new_cols[1]:
                 st.pyplot(plot_field(st.session_state.coordinates, relative_errors(Ur_pred, Ur_exp),
-                                     "RadialVelocity-RelativeError", vmin=0, vmax=2))
+                                     "RadialVelocity-RelativeError", vmin=0, vmax=1.4))
             with new_cols[2]:
                 st.pyplot(plot_field(st.session_state.coordinates, relative_errors(Ut_pred, Ut_exp),
-                                     "TangentialVelocity-RelativeError", vmin=0, vmax=2))
+                                     "TangentialVelocity-RelativeError", vmin=0, vmax=1.4))
             with new_cols[3]:
                 st.pyplot(plot_field(st.session_state.coordinates, relative_errors(Uz_pred, Uz_exp),
-                                     "AxialVelocity-RelativeError", vmin=0, vmax=2))
+                                     "AxialVelocity-RelativeError", vmin=0, vmax=1.4))
 
             # Error display cutoff
             LIMIT = st.slider(
@@ -484,13 +536,11 @@ if st.button("Compute Flow Field") and st.session_state.model:
             with new_cols1[3]:
                 st.pyplot(plot_error(rel_error_uz, "Uz", LIMIT))
 
-
             # Compute Correlation Coefficient-Pearson
             def correlation_coefficient(y_pred, y_true):
                 mean_pred, mean_true = np.mean(y_pred), np.mean(y_true)
                 return np.sum((y_pred - mean_pred) * (y_true - mean_true)) / np.linalg.norm(
                     y_true - mean_true) / np.linalg.norm(y_pred - mean_pred)
-
 
             # Compute Area-Weighted Relative Error
             def weighted_relative_error(y_pred, y_true):
@@ -612,12 +662,10 @@ if st.session_state.model:
                         def weighted_relative_error(y_pred, y_true):
                             # Avoid division by zero by masking small true values
                             mask = y_true > 0.01
-                            # Normalize based on y_true only
+                            # Normalize based on y_true only, some extremely small value of velocity and absolute pressure cause unreasonably high error distribution
                             y_true_min, y_true_max = np.min(y_true), np.max(y_true)
-
                             def normalize(data):
                                 return (data - y_true_min) / (y_true_max - y_true_min + 1e-8)
-
                             y_true_norm = normalize(y_true)[mask]
                             y_pred_norm = normalize(y_pred)[mask]
                             # Relative error
