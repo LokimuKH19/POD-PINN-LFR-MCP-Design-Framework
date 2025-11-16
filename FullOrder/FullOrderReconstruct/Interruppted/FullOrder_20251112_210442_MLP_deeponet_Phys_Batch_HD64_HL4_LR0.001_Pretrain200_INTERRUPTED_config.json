@@ -1,0 +1,32 @@
+{
+    "SEED": 1024,
+    "net_type": "MLP",
+    "model_mode": "deeponet",
+    "hidden_dim": 64,
+    "hidden_layers": 4,
+    "hidden_branch_dim": 128,
+    "hidden_branch_layers": 4,
+    "learning_rate": 0.001,
+    "coord_batch_size": 128,
+    "use_physics_loss": true,
+    "use_physics_batch": true,
+    "epochs": 210,
+    "pretrain_epochs": 200,
+    "use_scheduler": true,
+    "scheduler_patience": 5,
+    "scheduler_factor": 0.75,
+    "scheduler_min_lr": 1e-06,
+    "scaling_factor": 1.0,
+    "fno_configs": {
+        "encoder_type": "MLP",
+        "width": 16,
+        "depth": 4,
+        "modes": 32,
+        "cheb_modes": [
+            16,
+            16
+        ],
+        "alpha_init": 0.5,
+        "pseudo_grid_size": 64
+    }
+}
