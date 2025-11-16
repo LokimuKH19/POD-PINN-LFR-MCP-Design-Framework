@@ -1,0 +1,17 @@
+{
+    "MODES": 4,
+    "SEED": 42,
+    "hidden_dim": 30,
+    "hidden_layers": 2,
+    "learning_rate": 0.001,
+    "coord_batch_size": 128,
+    "use_physics_loss": false,
+    "use_physics_batch": false,
+    "epochs": 5000,
+    "pretrain_epochs": 0,
+    "use_scheduler": true,
+    "scheduler_patience": 50,
+    "scheduler_factor": 0.75,
+    "scheduler_min_lr": 1e-06,
+    "physics_loss_scale": 1e-06
+}
