@@ -16,6 +16,10 @@
 - `ur.csv`, `ut.csv`, `uz.csv`, `P.csv`: the flow field distribution of the 0.5 span zone $\left[u_r, u_\theta, u_z, p\right]\left(x,\beta\right)$ on the 25 different operating conditions.
 - `ResultReading.py`: Streamlit code for the model analyzer
 - `view.bat`: Start the Streamlit analyzer UI
+- `./ReducedResults`: Includes the extracted POD modes and the corresponding coefficients dataset;
+- `./ReconstructORI`: Includes all the POD-PINN models illustarted and not illustrated in the paper, and a simple analysis code used in the Fig. 8 `./ReconstructORI/analysis.py`;
+- `./FullOrderReconstruct`: Including all Full Order surrogate models reported and not reported in the paper, and a simple analysis code used in the Fig. 12 `./FullOrder/analysis.py`.
+- `./results`: The default directory for the model analyzer UI to store the summary csv files. Includes an analysis code for the evaluation of the model on the whole dataset, as used in the Fig. 10.
 
 ## POD-PINN
 Most part remains the same as the method illustrated in the Nureth-Conference, but there are 2 main improvements:
