@@ -46,9 +46,11 @@ class Config:
         self.scheduler_factor = 0.75
         self.scheduler_min_lr = 1e-6
         self.scaling_factor = 1.0
-        # 新增：点抽样参数
-        self.point_sampling_ratio = 0.3  # 抽样比例，0-1之间
-        self.use_point_sampling = True  # 是否启用点抽样
+        # Update: The sampling ratio of the spatial coordinates
+        self.point_sampling_ratio = 0.3
+        self.use_point_sampling = True  # if it is false, means use the coordinates sampling is disabled
+        # Update: Mode of the output: Joint means using a single neural network to output all the parameters,
+        self.output_mode = 'joint'  # 'joint' or 'separate'
 
         # FNO configs
         self.fno_configs = {
@@ -271,7 +273,7 @@ class BranchNet(nn.Module):
         return self.net(cond)
 
 
-# ====== DeepONet model (branch + trunk) ======
+# ====== DeepONet model (branch + trunk) - Joint Output ======
 class DeepONetFull(nn.Module):
     def __init__(self, trunk_type='MLP', trunk_hidden=128, trunk_layers=3, branch_hidden=128, branch_layers=3,
                  out_dim=4, fno_configs=None):
@@ -337,6 +339,52 @@ class DeepONetFull(nn.Module):
         return out  # (B,N,out_dim)
 
 
+# ====== DeepONet model with Separate Outputs ======
+class DeepONetSeparate(nn.Module):
+    def __init__(self, trunk_type='MLP', trunk_hidden=128, trunk_layers=3, branch_hidden=128, branch_layers=3,
+                 fno_configs=None):
+        super().__init__()
+        # branch
+        self.branch = BranchNet(input_dim=2, out_dim=trunk_hidden, hidden_dim=branch_hidden,
+                                hidden_layers=branch_layers)
+
+        # trunk networks for each output
+        trunk_kwargs = {
+            'trunk_type': trunk_type,
+            'trunk_hidden': trunk_hidden,
+            'trunk_layers': trunk_layers,
+            'branch_hidden': branch_hidden,
+            'branch_layers': branch_layers,
+            'out_dim': 1,
+            'fno_configs': fno_configs
+        }
+
+        self.trunk_ur = DeepONetFull(**trunk_kwargs)
+        self.trunk_ut = DeepONetFull(**trunk_kwargs)
+        self.trunk_uz = DeepONetFull(**trunk_kwargs)
+        self.trunk_p = DeepONetFull(**trunk_kwargs)
+
+    def forward(self, coords, cond):
+        """
+        coords: (N,3)
+        cond: (B,2)
+        returns: if B==1 -> (N, 4) [Ur, Ut, Uz, P]
+                 if B>1  -> (B, N, 4)
+        """
+        ur = self.trunk_ur(coords, cond)  # (N,1) or (B,N,1)
+        ut = self.trunk_ut(coords, cond)
+        uz = self.trunk_uz(coords, cond)
+        p = self.trunk_p(coords, cond)
+
+        # Concatenate outputs
+        if ur.dim() == 2:  # (N,1)
+            out = torch.cat([ur, ut, uz, p], dim=1)  # (N,4)
+        else:  # (B,N,1)
+            out = torch.cat([ur, ut, uz, p], dim=2)  # (B,N,4)
+
+        return out
+
+
 # ====== Full MLP baseline: input [r,theta,z,omega,qv] -> outputs (Ur,Ut,Uz,P) ======
 class FullMLP(nn.Module):
     def __init__(self, input_dim=5, hidden_dim=128, hidden_layers=4, out_dim=4):
@@ -351,6 +399,32 @@ class FullMLP(nn.Module):
         cond_exp = cond.expand(coords.shape[0], -1) if cond.shape[0] == 1 else cond.repeat(coords.shape[0], 1)
         x = torch.cat([coords, cond_exp], dim=1)
         return self.net(x)  # (N,4)
+
+
+# ====== Full MLP with Separate Outputs ======
+class FullMLPSeparate(nn.Module):
+    def __init__(self, input_dim=5, hidden_dim=128, hidden_layers=4):
+        super().__init__()
+        # Separate networks for each output
+        self.net_ur = MLPBackbone(input_dim, 1, hidden_dim=hidden_dim, hidden_layers=hidden_layers)
+        self.net_ut = MLPBackbone(input_dim, 1, hidden_dim=hidden_dim, hidden_layers=hidden_layers)
+        self.net_uz = MLPBackbone(input_dim, 1, hidden_dim=hidden_dim, hidden_layers=hidden_layers)
+        self.net_p = MLPBackbone(input_dim, 1, hidden_dim=hidden_dim, hidden_layers=hidden_layers)
+
+    def forward(self, coords, cond):
+        # coords: (N,3), cond: (B,2) or (2,)
+        if cond.dim() == 1:
+            cond = cond.unsqueeze(0)
+        # expand cond to (N,2)
+        cond_exp = cond.expand(coords.shape[0], -1) if cond.shape[0] == 1 else cond.repeat(coords.shape[0], 1)
+        x = torch.cat([coords, cond_exp], dim=1)
+
+        ur = self.net_ur(x)  # (N,1)
+        ut = self.net_ut(x)
+        uz = self.net_uz(x)
+        p = self.net_p(x)
+
+        return torch.cat([ur, ut, uz, p], dim=1)  # (N,4)
 
 
 class ModifiedDeepONet(nn.Module):
@@ -490,11 +564,11 @@ class FullOrderPINN:
         self.hidden_branch_dim = config.hidden_branch_dim
         self.hidden_branch_layers = config.hidden_branch_layers
         self.fno_configs = config.fno_configs
+        self.output_mode = config.output_mode  # 'joint' or 'separate'
 
-        # 新增：点抽样参数
         self.use_point_sampling = config.use_point_sampling
         self.point_sampling_ratio = config.point_sampling_ratio
-        self.sampled_point_indices = None  # 当前抽样的点索引
+        self.sampled_point_indices = None
 
         # -------- 1. Load EXP (conditions) and split flag ----------
         data = pd.read_csv('./EXP.csv', header=0)
@@ -552,7 +626,6 @@ class FullOrderPINN:
         qv_n = (qv - self.qv_mean) / self.qv_std
         self.conditions = torch.stack([omega_n, qv_n], dim=1).to(self.device)
 
-        # 初始化点抽样
         self._initialize_point_sampling()
 
         # -------- 4. Create model ----------
@@ -564,6 +637,13 @@ class FullOrderPINN:
                 branch_hidden=self.hidden_branch_dim,
                 branch_layers=self.hidden_branch_layers,
                 out_dim=4,
+                fno_configs=self.fno_configs
+            ) if self.output_mode == 'joint' else DeepONetSeparate(
+                trunk_type=self.net_type,
+                trunk_hidden=self.hidden_dim,
+                trunk_layers=self.hidden_layers,
+                branch_hidden=self.hidden_branch_dim,
+                branch_layers=self.hidden_branch_layers,
                 fno_configs=self.fno_configs
             ),
             'modified_deeponet': ModifiedDeepONet(
@@ -582,6 +662,10 @@ class FullOrderPINN:
                 hidden_dim=self.hidden_dim,
                 hidden_layers=self.hidden_layers,
                 out_dim=4
+            ) if self.output_mode == 'joint' else FullMLPSeparate(
+                input_dim=5,
+                hidden_dim=self.hidden_dim,
+                hidden_layers=self.hidden_layers
             )
         }
 
@@ -599,13 +683,13 @@ class FullOrderPINN:
         self.B = 10
 
     def _initialize_point_sampling(self):
-        """初始化点抽样"""
+        """Initiate the sampling"""
         self.total_points = self.coords_all.shape[0]
         self.sample_size = int(self.total_points * self.point_sampling_ratio)
         print(
             f"[INFO] Point sampling: {self.sample_size}/{self.total_points} points (ratio: {self.point_sampling_ratio})")
 
-        # 初始抽样
+        # the initial sampling result
         self._resample_points()
 
     def _resample_points(self):
@@ -661,7 +745,7 @@ class FullOrderPINN:
         return {'Ur': Ur, 'Ut': Ut, 'Uz': Uz, 'P': P}
 
     # ============================================================
-    # Data Loss (MSE) - 修改为使用抽样点
+    # Data Loss (MSE)
     # ============================================================
     def compute_data_loss(self, use_sampled_points=True):
         """
@@ -673,7 +757,7 @@ class FullOrderPINN:
 
         nconds = self.conditions.shape[0]
 
-        # 获取数据（抽样点或全部点）
+        # Getdata: All coords or the sampling coords
         if use_sampled_points and self.use_point_sampling:
             sampled_data = self.get_sampled_data()
             coords_input = sampled_data['coords']
@@ -716,17 +800,16 @@ class FullOrderPINN:
         return train_total, test_total
 
     # ============================================================
-    # Physics residual computation - 修改为使用抽样点
+    # Physics residual computation
     # ============================================================
     def compute_physics_residuals(self, coords, condition):
         """
         Compute physics residuals with simplified approach for FNO-based models
         Uses sampled coordinates if point sampling is enabled
         """
-        # 如果启用了点抽样且coords为None，使用抽样点
         if coords is None and self.use_point_sampling:
             sampled_data = self.get_sampled_data()
-            coords = sampled_data['coords_real']  # 使用物理坐标
+            coords = sampled_data['coords_real']  # use the coordinates from the dataset
 
         # Clone coordinates and enable gradients
         coords = coords.detach().clone().requires_grad_(True).to(self.device)
@@ -845,7 +928,7 @@ class FullOrderPINN:
         return physics_loss
 
     # ============================================================
-    # Helper losses - 修改为使用抽样点
+    # Helper losses
     # ============================================================
     def compute_hidden_constraint_loss(self, coord_batch_size=64):
         if not self.use_physics_loss:
@@ -854,11 +937,11 @@ class FullOrderPINN:
         if idx.numel() == 0:
             return torch.tensor(0.0, dtype=torch.float32, device=self.device)
 
-        # 使用抽样点
+        # Use sampling points
         if self.use_point_sampling:
             sampled_data = self.get_sampled_data()
             coords_all = sampled_data['coords_real']
-            # 如果抽样点数量小于batch_size，使用所有抽样点
+            # If the sampling size < the batch size, then use the sampling size as the batch size
             actual_batch_size = min(coord_batch_size, len(coords_all))
             coords_batch = coords_all[torch.randperm(len(coords_all))[:actual_batch_size]]
         else:
@@ -883,7 +966,6 @@ class FullOrderPINN:
         return physics_loss / float(condition_batch.shape[0])
 
     def compute_total_loss(self, coord_batch_size=64):
-        # 使用抽样点计算数据损失
         train_loss, test_loss = self.compute_data_loss(use_sampled_points=self.use_point_sampling)
         physics_loss = self.compute_hidden_constraint_loss(coord_batch_size=coord_batch_size)
         total_loss = train_loss + physics_loss * self.scaling_factor
@@ -908,7 +990,6 @@ class FullOrderPINN:
         sample_idx = idx[torch.randperm(len(idx))[:self.B]]
         condition_batch = self.conditions[sample_idx]  # shape (B,2)
 
-        # 使用抽样点
         if self.use_point_sampling:
             sampled_data = self.get_sampled_data()
             coords_permuted = sampled_data['coords_real']
@@ -926,7 +1007,7 @@ class FullOrderPINN:
             # zero gradients
             self.optim.zero_grad()
 
-            # compute data loss (使用抽样点)
+            # compute data loss
             train_loss, test_loss = self.compute_data_loss(use_sampled_points=self.use_point_sampling)
 
             # compute physics loss for current batch
@@ -951,8 +1032,8 @@ class FullOrderPINN:
         return train_loss_total / num_batches, test_loss_total / num_batches, physics_loss_total / num_batches
 
     def step(self, coord_batch_size=64):
-        """训练步骤，每个epoch重新抽样点"""
-        # 每个epoch重新抽样点
+        """The training step"""
+        # resample at each step to ensure all dataset could be fully utilized
         if self.use_point_sampling:
             self._resample_points()
 
@@ -973,8 +1054,9 @@ def generate_run_name(config, timestamp=None):
     batch_flag = "Batch" if config.use_physics_batch else "NoBatch"
     pretrain_flag = f"_Pretrain{config.pretrain_epochs}" if config.pretrain_epochs else ""
     sampling_flag = f"_Sample{config.point_sampling_ratio}" if config.use_point_sampling else ""
+    output_flag = f"_{config.output_mode}"
 
-    return f"FullOrder_{timestamp}_{config.net_type}_{config.model_mode}_{physics_flag}_{batch_flag}_HD{config.hidden_dim}_HL{config.hidden_layers}_LR{config.learning_rate}{pretrain_flag}{sampling_flag}"
+    return f"FullOrder_{timestamp}_{config.net_type}_{config.model_mode}_{physics_flag}_{batch_flag}_HD{config.hidden_dim}_HL{config.hidden_layers}_LR{config.learning_rate}{pretrain_flag}{sampling_flag}{output_flag}"
 
 
 def save_checkpoint(system, run_name, config, loss_history=None, path="./FullOrderReconstruct"):
@@ -1181,15 +1263,16 @@ def train_PINN(system, config, run_name):
 
         # Print progress
         sampling_info = f" | Sampled {system.sample_size}/{system.total_points} points" if system.use_point_sampling else ""
+        output_info = f" | Output: {config.output_mode}"
 
         if system.use_physics_batch:
             print(f"[Epoch {ep:04d}] Train Loss = {train_loss:.6f} | "
                   f"Test Loss = {test_loss:.6f} | Physics Loss = {physics_loss:.6f} | "
-                  f"LR = {current_lr:.2e}{sampling_info}")
+                  f"LR = {current_lr:.2e}{sampling_info}{output_info}")
         else:
             print(f"[Epoch {ep:04d}] Train Loss = {train_loss:.6f} | "
                   f"Test Loss = {test_loss:.6f} | Physics Loss = {physics_loss:.6f} | "
-                  f"LR = {current_lr:.2e}{sampling_info}")
+                  f"LR = {current_lr:.2e}{sampling_info}{output_info}")
 
         # Update scheduler
         if scheduler:
@@ -1210,26 +1293,27 @@ def train_PINN(system, config, run_name):
 if __name__ == "__main__":
     # ======== Configuration ========
     config = Config({
-        "SEED": 1024,
+        "SEED": 12,
         "net_type": "MLP",  # MLP CNN FNO CNO CFNO Transformer
-        "model_mode": "deeponet",  # New ModifiedDeepONet
-        "hidden_dim": 64,
-        "hidden_layers": 5,
-        "hidden_branch_dim": 64,
-        "hidden_branch_layers": 5,
+        "model_mode": "deeponet",  # deeponet, modified_deeponet, MLP
+        "hidden_dim": 16,
+        "hidden_layers": 3,
+        "hidden_branch_dim": 32,
+        "hidden_branch_layers": 3,
         "learning_rate": 1e-2,
         "coord_batch_size": 128,
         "use_physics_loss": True,
         "use_physics_batch": True,
         "epochs": 1000,
-        "pretrain_epochs": 50,
+        "pretrain_epochs": 0,
         "use_scheduler": True,
-        "scheduler_patience": 8,
-        "scheduler_factor": 0.85,
+        "scheduler_patience": 80,
+        "scheduler_factor": 0.95,
         "scheduler_min_lr": 1e-6,
         "scaling_factor": 1e-8,
         "use_point_sampling": True,
         "point_sampling_ratio": 0.3,
+        "output_mode": "separate",  # 'joint' or 'separate' - Updated the option of the output mode
         "fno_configs": {
             "encoder_type": 'MLP',
             "width": 16,
