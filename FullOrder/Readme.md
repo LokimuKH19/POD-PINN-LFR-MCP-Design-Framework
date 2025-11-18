@@ -1,8 +1,6 @@
 # Models Used in this Digital Twin
 
-> the dataet remains the same as the NURETH21 paper 1193.
-
-- Conclusion: Kind of counter-intuition. Because the Reduced Order model does not require generalization to the solution space, its solution space is significantly smaller compared to the full-order model, making it easier to obtain high-accuracy results.
+- General Conclusion: Kind of counter-intuition. Because the Reduced Order model does not require generalization to the solution space, its solution space is significantly smaller compared to the full-order model, making it easier to obtain high-accuracy results.
 
 - In fact, in the exploration of full-order surrogate models, we explored not only the most basic DeepONet structure reported in the paper, but also pure MLP, but the results were unsatisfactory. The errors of stress and Uz remained high, and the correlation was not significantly improved. In order to improve the generalization ability of spatial coordinates, we also tried **DeepONet** with **CNN**, **Transformer**, **FNO**, **CNO**, and our independent tech [**self-adaptive CFNO**](https://github.com/LokimuKH19/SymPhONIC/tree/main/WhyWeakFNO) with CNN/MLP coordinate encoders as the backbone network, as well as modified DeepONet in a Chinese paper that I wrote a long time ago (however, the solution format of that paper was rectangular coordinates instead of polar coordinates. In addition, the biggest difference was that the paper used more than 160 sets of simulation conditions as the dataset, and the data point sampling density was much higher than that of this paper. Overall, the sampling of the condition parameters obtained barely satisfactory results, but it is obvious that this process still relies heavily on traditional CFD operations). In summary, these surrogate models actually perform worse than the reduced-order model POD-PINN on sparse datasets.
 
