@@ -4,7 +4,7 @@
 
 - `./DLC`: POD-PINN with general centerization method, de-optimized. Temporarily disabled.
 
-- `./FullOrder`: Modified POD-PINN, MLP, DeepONet(MLP,FNO,CNO,SA-CFNO as the trunk, MLP as the branch, span=0.5) **If you are the reviewer of the paper "Fast Reconstruct the Flow Field of the Main Coolant Pump in the Lead-cooled Fast Reactor by Physics-Informed Reduced Order Modeling", please explore this filefolder for the code and research data related to this work.**
+- `./FullOrder`: Modified POD-PINN, MLP, DeepONet(MLP,FNO,CNO,SA-CFNO as the trunk, MLP as the branch, span=0.5) **If you are the reviewer of the paper "Physics-Informed Reduced Order Modeling for Real-time Reconstructing the Complex Three-dimensional Flow Field with High-dimensional Input Parameters", please explore this filefolder for the code and research data related to this work.**
 
 > This Repo was firstly related to the NURETH-21 Paper 1193(Developing a Real-Time Surrogate Model with POD-PINN Approach for the Flow Field in the Main Coolant Pump of Lead-Cooled Fast Reactors)'s PRESENTATION and a coming work (Ok it has been finished now) planned to submit to a journal related to this repository. Because of the limitation on passage length during the conference, we failed to report all necessary experimental details in that work. However, we all agree that the effort we paid on the improvements of the model should be recorded to gather the experience and indicate the lessons we learnt from the procedure. That's how this repo was set up and the complete version of the paper was written.
 
