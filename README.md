@@ -1,5 +1,7 @@
 # 🌀 POD-PINN Based Main Pump Flow Field Predictor
 
+Formal Paper see in this [link](https://doi.org/10.1016/j.anucene.2026.112784)
+
 - `./model_summon`: POD-PINN (original one, span=0.65)
 
 - `./DLC`: POD-PINN with general centerization method, de-optimized. Temporarily disabled.
